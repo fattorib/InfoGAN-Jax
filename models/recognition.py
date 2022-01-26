@@ -72,7 +72,7 @@ class Recognition(nn.Module):
 
         x = nn.Conv(
             kernel_size=(1, 1),
-            features=128,
+            features=self.filter_list[3],
             strides=(1, 1),
             padding=((0, 0), (0, 0)),
             use_bias=False,
@@ -90,7 +90,7 @@ class Recognition(nn.Module):
 
 if __name__ == "__main__":
 
-    model = Recognition(filter_list=[64, 128, 1024])
+    model = Recognition(filter_list=[64, 128, 1024, 128])
 
     def initialized(key, image_size, model):
         input_shape = (1, image_size, image_size, 1)

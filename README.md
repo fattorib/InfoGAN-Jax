@@ -1,5 +1,9 @@
 # InfoGAN in Jax
 
+## Testing
+```
+python -m pytest
+```
 
 ## References
 

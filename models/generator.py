@@ -31,26 +31,49 @@ class Generator(nn.Module):
             dtype=self.dtype,
         )
 
-        x = nn.ConvTranspose(features = 1024, kernel_size=(1,1), strides= (1,1), padding='VALID', use_bias=False)(x)
+        x = nn.ConvTranspose(
+            features=1024,
+            kernel_size=(1, 1),
+            strides=(1, 1),
+            padding="VALID",
+            use_bias=False,
+        )(x)
 
         x = nn.relu(x)
 
         x = norm()(x)
 
-        x = nn.ConvTranspose(features = 128, kernel_size=(6,6), strides= (1,1), padding='VALID', use_bias=False)(x)
+        x = nn.ConvTranspose(
+            features=128,
+            kernel_size=(6, 6),
+            strides=(1, 1),
+            padding="VALID",
+            use_bias=False,
+        )(x)
 
         x = nn.relu(x)
 
         x = norm()(x)
 
-
-        x = nn.ConvTranspose(features = 64, kernel_size=(3,3), strides= (2,2), padding='VALID', use_bias=False)(x)
+        x = nn.ConvTranspose(
+            features=64,
+            kernel_size=(3, 3),
+            strides=(2, 2),
+            padding="VALID",
+            use_bias=False,
+        )(x)
 
         x = nn.relu(x)
 
         x = norm()(x)
 
-        x = nn.ConvTranspose(features = 1, kernel_size=(4,4), strides= (2,2), padding='VALID', use_bias=False)(x)
+        x = nn.ConvTranspose(
+            features=1,
+            kernel_size=(4, 4),
+            strides=(2, 2),
+            padding="VALID",
+            use_bias=False,
+        )(x)
 
         return nn.sigmoid(x)
 

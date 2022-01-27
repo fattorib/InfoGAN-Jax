@@ -1,22 +1,23 @@
 from models.generator import *
 import matplotlib.pyplot as plt
-import jax 
+import jax
 import jax.numpy as jnp
 
 
 def create_latent_grid(num_images, model, rng_key):
 
-    #TODO: Ability to vary codes
+    # TODO: Ability to vary codes
 
-    latent_var = jax.random.uniform(rng_key, shape = (num_images,74))
+    latent_var = jax.random.uniform(rng_key, shape=(num_images, 74))
 
     output, _ = model.apply(
-            {"params": params, "batch_stats": batch_stats},
-            latent_var,
-            mutable=["batch_stats"],
-            train=False)
+        {"params": params, "batch_stats": batch_stats},
+        latent_var,
+        mutable=["batch_stats"],
+        train=False,
+    )
 
-    np_images = jax.device_get(output).reshape(num_images, 28,28)
+    np_images = jax.device_get(output).reshape(num_images, 28, 28)
 
     ncols = 8
     nrows = 5
@@ -30,7 +31,7 @@ def create_latent_grid(num_images, model, rng_key):
 
     i = 0
     for ax in axes:
-        ax.imshow(np_images[i,:], cmap = 'gray')
+        ax.imshow(np_images[i, :], cmap="gray")
         i += 1
 
     for ax in axes:
@@ -39,7 +40,8 @@ def create_latent_grid(num_images, model, rng_key):
 
     plt.show()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     model = Generator()
 
@@ -58,4 +60,4 @@ if __name__ == '__main__':
 
     params, batch_stats = initialized(rng, 74, model)
 
-    create_latent_grid(40, model, rng_key = rng)
+    create_latent_grid(40, model, rng_key=rng)

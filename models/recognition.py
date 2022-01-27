@@ -12,7 +12,7 @@ import numpy as np
 ModuleDef = Any
 dtypedef = Any
 
-#TODO: Add specific heads on top for categorical/cts codes
+# TODO: Add specific heads on top for categorical/cts codes
 class Recognition(nn.Module):
 
     filter_list: Sequence[int]

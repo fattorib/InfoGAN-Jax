@@ -6,7 +6,9 @@ import jax.numpy as jnp
 
 def create_latent_grid(num_images, model, rng_key):
 
-    latent_var = jax.random.uniform(rng, shape = (num_images,74))
+    #TODO: Ability to vary codes
+
+    latent_var = jax.random.uniform(rng_key, shape = (num_images,74))
 
     output, _ = model.apply(
             {"params": params, "batch_stats": batch_stats},

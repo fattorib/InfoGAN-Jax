@@ -48,7 +48,7 @@ class Discriminator(nn.Module):
             kernel_size=(4, 4),
             features=self.filter_list[1],
             strides=(2, 2),
-            padding=((1, 0), (1, 0)),
+            padding=((1, 1), (1, 1)),
             use_bias=False,
             dtype=self.dtype,
         )(x)
@@ -99,4 +99,4 @@ if __name__ == "__main__":
     rng = jax.random.PRNGKey(0)
     rng, init_rng = jax.random.split(rng)
 
-    params, batch_stats = initialized(rng, 32, model)
+    params, batch_stats = initialized(rng, 28, model)

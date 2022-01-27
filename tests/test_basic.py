@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 from models.generator import Generator
 from models.discriminator import Discriminator
+from models.recognition import Recognition
 
 
 from utils.create_latents_with_codes import create_latents_with_codes
@@ -85,3 +86,46 @@ class TestDiscriminator(unittest.TestCase):
         )
 
         self.assertEqual((128, 1), output.shape)
+
+
+class TestQ(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.rng = jax.random.PRNGKey(0)
+
+        self.num_cts_codes = 50
+
+        self.num_cat = 100
+
+        self.model = Recognition(filter_list=[64, 128, 1024, 128], 
+            num_cts_codes=self.num_cts_codes, num_cat=self.num_cat 
+            )
+
+        self.image_size = 28
+
+        input_shape = (128, self.image_size, self.image_size, 1)
+
+        self.variables = self.model.init(
+            self.rng, jnp.ones(input_shape, dtype=jnp.float32), train=True
+        )
+
+        self.x = jnp.ones(input_shape, dtype=jnp.float32)
+
+    def test_discriminator_apply(self):
+
+        q_out,  _ = self.model.apply(
+            {
+                "params": self.variables["params"],
+                "batch_stats": self.variables["batch_stats"],
+            },
+            self.x,
+            mutable=["batch_stats"],
+            train=False,
+        )
+
+        q_logits, q_mean, q_var, = q_out[0], q_out[1], q_out[2]
+        self.assertEqual((128, self.num_cat), q_logits.shape)
+
+        self.assertEqual((128, self.num_cts_codes), q_mean.shape)
+
+        self.assertEqual((128, self.num_cts_codes), q_var.shape)

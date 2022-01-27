@@ -7,6 +7,7 @@ from flax.core import freeze, unfreeze
 from flax import linen as nn
 import copy
 from functools import partial
+from matplotlib.pyplot import axes
 import numpy as np
 
 ModuleDef = Any
@@ -16,6 +17,10 @@ dtypedef = Any
 class Recognition(nn.Module):
 
     filter_list: Sequence[int]
+
+    num_cts_codes: int = 2
+
+    num_cat: int = 10
 
     num_channels: int = 1
 
@@ -48,7 +53,7 @@ class Recognition(nn.Module):
             kernel_size=(4, 4),
             features=self.filter_list[1],
             strides=(2, 2),
-            padding=((1, 0), (1, 0)),
+            padding=((1, 1), (1, 1)),
             use_bias=False,
             dtype=self.dtype,
         )(x)
@@ -85,7 +90,36 @@ class Recognition(nn.Module):
 
         x = nn.leaky_relu(x, negative_slope=0.1)
 
-        return x
+        #return discrete latent codes and then the mean, std for gaussian
+
+        x_logits =  nn.Conv(
+            kernel_size=(1, 1),
+            features=self.num_cat,
+            strides=(1, 1),
+            padding=((0, 0), (0, 0)),
+            use_bias=False,
+            dtype=self.dtype,
+        )(x)
+
+        x_mean =  nn.Conv(
+            kernel_size=(1, 1),
+            features=self.num_cts_codes,
+            strides=(1, 1),
+            padding=((0, 0), (0, 0)),
+            use_bias=False,
+            dtype=self.dtype,
+        )(x)
+
+        x_var = nn.Conv(
+            kernel_size=(1, 1),
+            features=self.num_cts_codes,
+            strides=(1, 1),
+            padding=((0, 0), (0, 0)),
+            use_bias=False,
+            dtype=self.dtype,
+        )(x)
+
+        return x_logits.squeeze(axis = [1,2]), x_mean.squeeze(axis = [1,2]), jnp.exp(x_var).squeeze(axis = [1,2])
 
 
 if __name__ == "__main__":
@@ -105,4 +139,4 @@ if __name__ == "__main__":
     rng = jax.random.PRNGKey(0)
     rng, init_rng = jax.random.split(rng)
 
-    params, batch_stats = initialized(rng, 32, model)
+    params, batch_stats = initialized(rng, 28, model)

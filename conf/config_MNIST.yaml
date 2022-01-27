@@ -1,0 +1,19 @@
+training:
+  epochs: 101
+  workers: 4
+  batch_size: 512
+  weight_decay: 5e-4
+  print_freq: 100
+  local_rank: 0
+  mixed_precision: True 
+  base_lr: 6e-2
+
+model:
+  num_noise: 62
+  num_cts_codes: 2
+  num_cat_codes: 1
+  num_categories: 10
+
+data:
+  dataset: 'MNIST'
+

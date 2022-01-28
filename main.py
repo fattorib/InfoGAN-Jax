@@ -2,6 +2,7 @@ from email import generator
 import flax.linen as nn
 import numpy
 import optax
+import functools
 
 # Flax imports
 from typing import Any
@@ -116,7 +117,7 @@ def main(config: DictConfig):
     q_state = create_train_state(
         rng=init_rng_q,
         var_size=28,
-        learning_rate=cfg.training.discriminator_lr,
+        learning_rate=cfg.training.generator_lr,
         weight_decay=cfg.training.weight_decay,
         model=q_network,
     )
@@ -171,3 +172,87 @@ def create_train_state(rng, init_func, var_size, learning_rate, weight_decay, mo
         dynamic_scale=flax.optim.DynamicScale() if model.dtype == jnp.float16 else None,
     )
     return state
+
+
+@jax.jit
+def train_discriminator_step(state, real_batch, generated_batch):
+    """Train the discriminator for a single step"""
+
+    def loss_fn(params):
+        scores_real, new_state = state.apply_fn(
+            {"params": params, "batch_stats": state.batch_stats},
+            real_batch,
+            mutable=["batch_stats"],
+            train=True,
+        )
+
+        scores_fake, new_state = new_state.apply_fn(
+            {"params": params, "batch_stats": new_state.batch_stats},
+            generated_batch,
+            mutable=["batch_stats"],
+            train=True,
+        )
+
+        loss_real = binary_cross_entropy_loss(
+            scores=scores_real, labels=jnp.ones(cfg.training.batch_size)
+        )
+
+        loss_fake = binary_cross_entropy_loss(
+            scores=scores_fake, labels=jnp.zeros(cfg.training.batch_size)
+        )
+
+        return loss_real + loss_fake, (scores_real, scores_fake, new_state)
+
+    dynamic_scale = state.dynamic_scale
+
+    if dynamic_scale:
+        grad_fn = dynamic_scale.value_and_grad(loss_fn, has_aux=True)
+        dynamic_scale, is_fin, aux, grads = grad_fn(state.params)
+
+    else:
+
+        grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+        aux, grads = grad_fn(state.params)
+
+    scores_real, scores_fake, new_state = aux[1]
+
+    state = state.apply_gradients(
+        grads=grads,
+        batch_stats=new_state["batch_stats"],
+    )
+
+    disc_loss = compute_discriminator_metrics(
+        scores_real=scores_real, scores_fake=scores_fake
+    )
+
+    metrics = {"Discriminator Loss": disc_loss}
+
+    if dynamic_scale:
+        # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
+        # params should be restored (= skip this step).
+        state = state.replace(
+            opt_state=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin), state.opt_state, state.opt_state
+            ),
+            params=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin), state.params, state.params
+            ),
+        )
+
+    return state, metrics
+
+
+def compute_discriminator_metrics(
+    *,
+    scores_real,
+    scores_fake,
+):
+    loss_real = binary_cross_entropy_loss(
+        scores=scores_real, labels=jnp.ones(cfg.training.batch_size)
+    )
+
+    loss_fake = binary_cross_entropy_loss(
+        scores=scores_fake, labels=jnp.zeros(cfg.training.batch_size)
+    )
+
+    return loss_real + loss_fake

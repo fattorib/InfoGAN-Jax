@@ -14,9 +14,13 @@ def binary_cross_entropy_loss(*, scores, labels):
 
     scaled_scores = nn.sigmoid(scores)
 
+    #Clipping log values
+    clipped_score_pos = jnp.clip(jnp.log(scaled_scores), -100)
+    clipped_score_neg = jnp.clip(jnp.log(1 - scaled_scores), -100)
+
     return -jnp.mean(
         jnp.sum(
-            labels * jnp.log(scaled_scores) + (1 - labels) * jnp.log(1 - scaled_scores),
+            labels * clipped_score_pos + (1 - labels) * clipped_score_neg,
             axis=-1,
         )
     )
@@ -41,8 +45,8 @@ def q_cts_loss(*, q_mu, q_var, y):
     TODO: Still don't completely understand why we use this loss function
     """
 
-    likelihood = (0.5 / (jnp.pi * q_var)) ** (1 / 2) * (
-        jnp.exp((-0.5 / (q_var) * (y - q_mu) ** 2))
-    )
+    #LL for single example
+    loglikelihood = (1/(2*(q_var**2 + 1e-6))) * ((y - q_mu)**(2) + 0.5*jnp.log(2*jnp.pi*q_var + 1e-6))
 
-    return -jnp.mean(jnp.sum(jnp.log(likelihood), axis=-1))
+    return -jnp.mean(jnp.sum(-1*loglikelihood, axis=-1))
+

@@ -26,7 +26,7 @@ class Discriminator(nn.Module):
     kernel_init: Callable = nn.initializers.normal(stddev=0.02, dtype=dtype)
 
     @nn.compact
-    def __call__(self, x, train):
+    def __call__(self, x, train, with_head):
 
         norm = partial(
             nn.BatchNorm,
@@ -76,17 +76,21 @@ class Discriminator(nn.Module):
 
         x = nn.leaky_relu(x, negative_slope=0.1)
 
-        x = nn.Conv(
-            kernel_size=(1, 1),
-            features=1,
-            strides=(1, 1),
-            padding=((0, 0), (0, 0)),
-            use_bias=False,
-            dtype=self.dtype,
-            kernel_init=self.kernel_init,
-        )(x)
+        if with_head:
 
-        return x.squeeze(axis=(2, 3))
+            x = nn.Conv(
+                kernel_size=(1, 1),
+                features=1,
+                strides=(1, 1),
+                padding=((0, 0), (0, 0)),
+                use_bias=False,
+                dtype=self.dtype,
+                kernel_init=self.kernel_init,
+            )(x)
+
+            return x.squeeze(axis=(2, 3))
+        else:
+            return x
 
 
 if __name__ == "__main__":

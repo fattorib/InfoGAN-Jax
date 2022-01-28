@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 from models.generator import Generator
 from models.discriminator import Discriminator
-from models.recognition import Recognition
+from models.recognition import Q_head
 
 
 from utils.create_latents_with_codes import create_latents_with_codes
@@ -66,14 +66,16 @@ class TestDiscriminator(unittest.TestCase):
         self.image_size = 28
 
         input_shape = (128, self.image_size, self.image_size, 1)
-
-        self.variables = self.model.init(
-            self.rng, jnp.ones(input_shape, dtype=jnp.float32), train=True
-        )
-
         self.x = jnp.ones(input_shape, dtype=jnp.float32)
 
-    def test_discriminator_apply(self):
+        self.variables = self.model.init(
+            self.rng,
+            jnp.ones(input_shape, dtype=jnp.float32),
+            train=True,
+            with_head=True,
+        )
+
+    def test_discriminator_apply_with_head(self):
 
         output, _ = self.model.apply(
             {
@@ -82,46 +84,79 @@ class TestDiscriminator(unittest.TestCase):
             },
             self.x,
             mutable=["batch_stats"],
-            train=False,
+            train=True,
+            with_head=True,
         )
 
         self.assertEqual((128, 1), output.shape)
 
+    def test_discriminator_apply_no_head(self):
 
-class TestQ(unittest.TestCase):
-    def setUp(self) -> None:
-        self.rng = jax.random.PRNGKey(0)
-
-        self.num_cts_codes = 50
-
-        self.num_cat = 100
-
-        self.model = Recognition(
-            filter_list=[64, 128, 1024, 128],
-            num_cts_codes=self.num_cts_codes,
-            num_cat=self.num_cat,
-        )
-
-        self.image_size = 28
-
-        input_shape = (128, self.image_size, self.image_size, 1)
-
-        self.variables = self.model.init(
-            self.rng, jnp.ones(input_shape, dtype=jnp.float32), train=True
-        )
-
-        self.x = jnp.ones(input_shape, dtype=jnp.float32)
-
-    def test_recognition_apply(self):
-
-        q_out, _ = self.model.apply(
+        output, _ = self.model.apply(
             {
                 "params": self.variables["params"],
                 "batch_stats": self.variables["batch_stats"],
             },
             self.x,
             mutable=["batch_stats"],
-            train=False,
+            train=True,
+            with_head=False,
+        )
+
+        self.assertEqual((128, 1, 1, 1024), output.shape)
+
+
+class TestQ(unittest.TestCase):
+    def setUp(self) -> None:
+        self.rng = jax.random.PRNGKey(0)
+        self.model = Discriminator(filter_list=[64, 128, 1024])
+
+        self.image_size = 28
+        self.num_cts_codes = 2
+        self.num_cat = 10
+
+        input_shape = (128, self.image_size, self.image_size, 1)
+
+        self.variables = self.model.init(
+            self.rng,
+            jnp.ones(input_shape, dtype=jnp.float32),
+            train=True,
+            with_head=True,
+        )
+
+        self.x = jnp.ones(input_shape, dtype=jnp.float32)
+
+        self.Q_head = Q_head(filter_size=128)
+
+        input_shape = (128, 1, 1, 1024)
+
+        self.q_variables = self.Q_head.init(
+            self.rng,
+            jnp.ones(input_shape, dtype=jnp.float32),
+            train=True,
+        )
+
+    def test_Q_head(self):
+
+        disc_output, _ = self.model.apply(
+            {
+                "params": self.variables["params"],
+                "batch_stats": self.variables["batch_stats"],
+            },
+            self.x,
+            mutable=["batch_stats"],
+            train=True,
+            with_head=False,
+        )
+
+        q_out, _ = self.Q_head.apply(
+            {
+                "params": self.q_variables["params"],
+                "batch_stats": self.q_variables["batch_stats"],
+            },
+            disc_output,
+            mutable=["batch_stats"],
+            train=True,
         )
 
         q_logits, q_mean, q_var, = (

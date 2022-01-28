@@ -112,7 +112,7 @@ class TestQ(unittest.TestCase):
 
         self.x = jnp.ones(input_shape, dtype=jnp.float32)
 
-    def test_discriminator_apply(self):
+    def test_recognition_apply(self):
 
         q_out, _ = self.model.apply(
             {

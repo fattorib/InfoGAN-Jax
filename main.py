@@ -81,9 +81,8 @@ def main(config: DictConfig):
 
 
 
-# TODO: needs updating
-def initialized_disc(key, image_size, model):
-    input_shape = (1, image_size, image_size, 3)
+def initialized_discriminator(key, image_size, model):
+    input_shape = (1, image_size, image_size, 1)
 
     @jax.jit
     def init(rng, shape):
@@ -92,9 +91,8 @@ def initialized_disc(key, image_size, model):
     variables = init(rng=key, shape=jnp.ones(input_shape, dtype=model.dtype))
     return variables["params"], variables["batch_stats"]
     
-# TODO: needs updating
-def initialized_gen(key, image_size, model):
-    input_shape = (1, image_size, image_size, 3)
+def initialized_generator(key, variable_size, model):
+    input_shape = (1, variable_size)
 
     @jax.jit
     def init(rng, shape):
@@ -105,22 +103,22 @@ def initialized_gen(key, image_size, model):
 
 
 
-# TODO: needs updating
-def create_train_state(rng, momentum, learning_rate_fn, weight_decay, model):
-    """Creates initial `TrainState`."""
-    params, batch_stats = initialized(rng, 32, model)
+# # TODO: needs updating
+# def create_train_state(rng, momentum, learning_rate_fn, weight_decay, model):
+#     """Creates initial `TrainState`."""
+#     params, batch_stats = initialized(rng, 32, model)
 
-    #TODO: Add masking for BN params
-    #Technically this is AdamW - look at AdamW docstring to see how this is done
-    tx = optax.sgd(learning_rate=learning_rate_fn, momentum=momentum, nesterov=True)
+#     #TODO: Add masking for BN params
+#     #Technically this is AdamW - look at AdamW docstring to see how this is done
+#     tx = optax.sgd(learning_rate=learning_rate_fn, momentum=momentum, nesterov=True)
 
 
-    state = TrainState.create(
-        apply_fn=model.apply,
-        params=params,
-        tx=tx,
-        batch_stats=batch_stats,
-        weight_decay=weight_decay,
-        dynamic_scale=flax.optim.DynamicScale() if model.dtype == jnp.float16 else None,
-    )
-    return state
+#     state = TrainState.create(
+#         apply_fn=model.apply,
+#         params=params,
+#         tx=tx,
+#         batch_stats=batch_stats,
+#         weight_decay=weight_decay,
+#         dynamic_scale=flax.optim.DynamicScale() if model.dtype == jnp.float16 else None,
+#     )
+#     return state

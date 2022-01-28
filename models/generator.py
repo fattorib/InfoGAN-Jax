@@ -19,7 +19,7 @@ class Generator(nn.Module):
     dtype: dtypedef = jnp.float32
 
     # define init for conv layers
-    kernel_init: Callable = nn.initializers.normal(stddev = 0.02, dtype = dtype)
+    kernel_init: Callable = nn.initializers.normal(stddev=0.02, dtype=dtype)
 
     @nn.compact
     def __call__(self, x, train):
@@ -40,7 +40,7 @@ class Generator(nn.Module):
             strides=(1, 1),
             padding="VALID",
             use_bias=False,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x = nn.relu(x)
@@ -53,7 +53,7 @@ class Generator(nn.Module):
             strides=(1, 1),
             padding="VALID",
             use_bias=False,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x = nn.relu(x)
@@ -66,7 +66,7 @@ class Generator(nn.Module):
             strides=(2, 2),
             padding="VALID",
             use_bias=False,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x = nn.relu(x)
@@ -79,7 +79,7 @@ class Generator(nn.Module):
             strides=(2, 2),
             padding="VALID",
             use_bias=False,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         return nn.sigmoid(x)

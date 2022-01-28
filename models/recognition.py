@@ -28,7 +28,7 @@ class Recognition(nn.Module):
     dtype: dtypedef = jnp.float32
 
     # define init for conv layers
-    kernel_init: Callable = nn.initializers.normal(stddev = 0.02, dtype = dtype)
+    kernel_init: Callable = nn.initializers.normal(stddev=0.02, dtype=dtype)
 
     @nn.compact
     def __call__(self, x, train):
@@ -48,7 +48,7 @@ class Recognition(nn.Module):
             padding=((1, 1), (1, 1)),
             use_bias=True,
             dtype=self.dtype,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x = nn.leaky_relu(x, negative_slope=0.1)
@@ -60,7 +60,7 @@ class Recognition(nn.Module):
             padding=((1, 1), (1, 1)),
             use_bias=False,
             dtype=self.dtype,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x = norm()(x)
@@ -74,7 +74,7 @@ class Recognition(nn.Module):
             padding=((0, 0), (0, 0)),
             use_bias=False,
             dtype=self.dtype,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x = norm()(x)
@@ -88,7 +88,7 @@ class Recognition(nn.Module):
             padding=((0, 0), (0, 0)),
             use_bias=False,
             dtype=self.dtype,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x = nn.leaky_relu(x, negative_slope=0.1)
@@ -106,7 +106,7 @@ class Recognition(nn.Module):
             padding=((0, 0), (0, 0)),
             use_bias=False,
             dtype=self.dtype,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x_mean = nn.Conv(
@@ -116,7 +116,7 @@ class Recognition(nn.Module):
             padding=((0, 0), (0, 0)),
             use_bias=False,
             dtype=self.dtype,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         x_var = nn.Conv(
@@ -126,7 +126,7 @@ class Recognition(nn.Module):
             padding=((0, 0), (0, 0)),
             use_bias=False,
             dtype=self.dtype,
-            kernel_init = self.kernel_init
+            kernel_init=self.kernel_init,
         )(x)
 
         return (
@@ -152,5 +152,3 @@ if __name__ == "__main__":
 
     rng = jax.random.PRNGKey(0)
     rng, init_rng = jax.random.split(rng)
-
-    params, batch_stats = initialized(rng, 28, model)

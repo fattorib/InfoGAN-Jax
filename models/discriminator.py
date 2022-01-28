@@ -79,7 +79,7 @@ class Discriminator(nn.Module):
             dtype=self.dtype,
         )(x)
 
-        return nn.sigmoid(x).squeeze(axis=(2, 3))
+        return x.squeeze(axis=(2, 3))
 
 
 if __name__ == "__main__":

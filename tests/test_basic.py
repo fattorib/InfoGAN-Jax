@@ -89,7 +89,6 @@ class TestDiscriminator(unittest.TestCase):
 
 
 class TestQ(unittest.TestCase):
-
     def setUp(self) -> None:
         self.rng = jax.random.PRNGKey(0)
 
@@ -97,9 +96,11 @@ class TestQ(unittest.TestCase):
 
         self.num_cat = 100
 
-        self.model = Recognition(filter_list=[64, 128, 1024, 128], 
-            num_cts_codes=self.num_cts_codes, num_cat=self.num_cat 
-            )
+        self.model = Recognition(
+            filter_list=[64, 128, 1024, 128],
+            num_cts_codes=self.num_cts_codes,
+            num_cat=self.num_cat,
+        )
 
         self.image_size = 28
 
@@ -113,7 +114,7 @@ class TestQ(unittest.TestCase):
 
     def test_discriminator_apply(self):
 
-        q_out,  _ = self.model.apply(
+        q_out, _ = self.model.apply(
             {
                 "params": self.variables["params"],
                 "batch_stats": self.variables["batch_stats"],
@@ -123,7 +124,11 @@ class TestQ(unittest.TestCase):
             train=False,
         )
 
-        q_logits, q_mean, q_var, = q_out[0], q_out[1], q_out[2]
+        q_logits, q_mean, q_var, = (
+            q_out[0],
+            q_out[1],
+            q_out[2],
+        )
         self.assertEqual((128, self.num_cat), q_logits.shape)
 
         self.assertEqual((128, self.num_cts_codes), q_mean.shape)

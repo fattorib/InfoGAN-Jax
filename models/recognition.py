@@ -90,9 +90,9 @@ class Recognition(nn.Module):
 
         x = nn.leaky_relu(x, negative_slope=0.1)
 
-        #return discrete latent codes and then the mean, std for gaussian
+        # return discrete latent codes and then the mean, std for gaussian
 
-        x_logits =  nn.Conv(
+        x_logits = nn.Conv(
             kernel_size=(1, 1),
             features=self.num_cat,
             strides=(1, 1),
@@ -101,7 +101,7 @@ class Recognition(nn.Module):
             dtype=self.dtype,
         )(x)
 
-        x_mean =  nn.Conv(
+        x_mean = nn.Conv(
             kernel_size=(1, 1),
             features=self.num_cts_codes,
             strides=(1, 1),
@@ -119,7 +119,11 @@ class Recognition(nn.Module):
             dtype=self.dtype,
         )(x)
 
-        return x_logits.squeeze(axis = [1,2]), x_mean.squeeze(axis = [1,2]), jnp.exp(x_var).squeeze(axis = [1,2])
+        return (
+            x_logits.squeeze(axis=[1, 2]),
+            x_mean.squeeze(axis=[1, 2]),
+            jnp.exp(x_var).squeeze(axis=[1, 2]),
+        )
 
 
 if __name__ == "__main__":

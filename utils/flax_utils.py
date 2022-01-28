@@ -57,4 +57,3 @@ def create_cos_anneal_schedule(base_lr, min_lr, max_steps):
         return base_lr * decayed
 
     return learning_rate_fn
-

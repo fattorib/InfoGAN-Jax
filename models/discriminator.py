@@ -22,6 +22,9 @@ class Discriminator(nn.Module):
     # dtype for fp16/32 training
     dtype: dtypedef = jnp.float32
 
+    # define init for conv layers
+    kernel_init: Callable = nn.initializers.normal(stddev = 0.02, dtype = dtype)
+
     @nn.compact
     def __call__(self, x, train):
 
@@ -40,6 +43,7 @@ class Discriminator(nn.Module):
             padding=((1, 1), (1, 1)),
             use_bias=True,
             dtype=self.dtype,
+            kernel_init = self.kernel_init
         )(x)
 
         x = nn.leaky_relu(x, negative_slope=0.1)
@@ -51,6 +55,7 @@ class Discriminator(nn.Module):
             padding=((1, 1), (1, 1)),
             use_bias=False,
             dtype=self.dtype,
+            kernel_init = self.kernel_init
         )(x)
 
         x = norm()(x)
@@ -64,6 +69,7 @@ class Discriminator(nn.Module):
             padding=((0, 0), (0, 0)),
             use_bias=False,
             dtype=self.dtype,
+            kernel_init = self.kernel_init
         )(x)
 
         x = norm()(x)
@@ -77,6 +83,7 @@ class Discriminator(nn.Module):
             padding=((0, 0), (0, 0)),
             use_bias=False,
             dtype=self.dtype,
+            kernel_init = self.kernel_init
         )(x)
 
         return x.squeeze(axis=(2, 3))

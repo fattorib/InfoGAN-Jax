@@ -1,4 +1,5 @@
 import flax.linen as nn
+import numpy
 import optax
 # Flax imports
 from typing import Any
@@ -79,6 +80,8 @@ def main(config: DictConfig):
     rng = jax.random.PRNGKey(0)
     rng, init_rng = jax.random.split(rng)
 
+    #Split rng init key for each of our models
+    init_rng_disc, init_rng_gen, init_rng_q = jax.random.split(init_rng, num = 3)
 
 
 def initialized_discriminator(key, image_size, model):

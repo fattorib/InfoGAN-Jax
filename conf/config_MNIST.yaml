@@ -1,12 +1,14 @@
 training:
   epochs: 101
   workers: 4
-  batch_size: 512
+  batch_size: 128
   weight_decay: 5e-4
   print_freq: 100
   local_rank: 0
   mixed_precision: True 
-  base_lr: 6e-2
+  discriminator_lr: 2e-4
+  generator_lr: 1e-3
+  lambda: 1
 
 model:
   num_noise: 62

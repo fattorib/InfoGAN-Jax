@@ -2,13 +2,13 @@ from models.generator import *
 import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
+from utils.create_latents_with_codes import create_latents_with_codes
 
-
-def create_latent_grid(num_images, model, rng_key):
+def create_latent_grid(num_images, model, rng_key, image_dims = (10,10)):
 
     # TODO: Ability to vary codes
 
-    latent_var = jax.random.uniform(rng_key, shape=(num_images, 74))
+    latent_var = create_latents_with_codes(num_noise=62, num_cts = 2, num_cat=10, rng_key=rng_key, num_samples= num_images)
 
     output, _ = model.apply(
         {"params": params, "batch_stats": batch_stats},
@@ -19,8 +19,10 @@ def create_latent_grid(num_images, model, rng_key):
 
     np_images = jax.device_get(output).reshape(num_images, 28, 28)
 
-    ncols = 8
-    nrows = 5
+    ncols = image_dims[0]
+    nrows = image_dims[1]
+
+    assert ncols*nrows == num_images, "Check your plot dimensions"
 
     fig = plt.figure()
     axes = [
@@ -60,4 +62,4 @@ if __name__ == "__main__":
 
     params, batch_stats = initialized(rng, 74, model)
 
-    create_latent_grid(40, model, rng_key=rng)
+    create_latent_grid(100, model, rng_key=rng)

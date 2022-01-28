@@ -37,11 +37,3 @@ def create_latents_with_codes(num_noise, num_cts, num_cat, rng_key, num_samples)
     return z
 
 
-if __name__ == "__main__":
-
-    rng = jax.random.PRNGKey(0)
-    z = create_latents_with_codes(
-        num_noise=62, num_cts=2, num_cat=10, rng_key=rng, num_samples=4
-    )
-
-    print(z.shape)

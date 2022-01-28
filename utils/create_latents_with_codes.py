@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-
+import operator
 
 def create_latents_with_codes(num_noise, num_cts, num_cat, rng_key, num_samples):
     """Create a latent variable to feed into the generator
@@ -25,11 +25,12 @@ def create_latents_with_codes(num_noise, num_cts, num_cat, rng_key, num_samples)
         z = jnp.concatenate([z, c], axis=1)
 
     # Categorical
-
     logit_probs = [1 / num_cat for _ in range(num_cat)]
-    c = jax.random.categorical(
-        key=rng_key, logits=jnp.array(logit_probs), shape=(num_samples, num_cat)
+    c_idx = jax.random.categorical(
+        key=rng_key, logits=jnp.array(logit_probs), shape=(num_samples,)
     )
+
+    c = jax.nn.one_hot(c_idx, num_classes= num_cat)
 
     z = jnp.concatenate([z, c], axis=1)
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
 
     rng = jax.random.PRNGKey(0)
     z = create_latents_with_codes(
-        num_noise=62, num_cts=2, num_cat=10, rng_key=rng, num_samples=128
+        num_noise=62, num_cts=2, num_cat=10, rng_key=rng, num_samples=4
     )
 
     print(z.shape)

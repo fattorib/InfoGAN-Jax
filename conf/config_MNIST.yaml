@@ -1,5 +1,5 @@
 training:
-  epochs: 101
+  epochs: 10
   workers: 4
   batch_size: 128
   weight_decay: 5e-4

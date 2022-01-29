@@ -4,28 +4,16 @@ import flax.linen as nn
 
 
 @jax.jit
-def binary_cross_entropy_loss(*, scores, labels):
+def binary_cross_entropy_loss(*, logit, label):
     """
     Standard BCELoss. We assume that scores are unscaled.
 
     Used for discriminator loss.
 
-    TODO: Might need to update implementation for numerical stability.
-          See: https://github.com/pytorch/pytorch/issues/751
     """
 
-    scaled_scores = nn.sigmoid(scores)
+    return jnp.mean(jnp.maximum(logit, 0) - logit * label + jnp.log(1 + jnp.exp(-jnp.abs(logit))))
 
-    # Clipping log values
-    clipped_score_pos = jnp.clip(jnp.log(scaled_scores), -100)
-    clipped_score_neg = jnp.clip(jnp.log(1 - scaled_scores), -100)
-
-    return -jnp.mean(
-        jnp.sum(
-            labels * clipped_score_pos + (1 - labels) * clipped_score_neg,
-            axis=-1,
-        )
-    )
 
 
 @jax.jit

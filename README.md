@@ -17,6 +17,9 @@ InfoGAN (cite) proposes an updated loss function for GANs to learn disentangled 
 3. PyTorch dataloading
     3.1 Should be able to reuse most of the code from ResNets - Pretty much done
 
+4. Get mixed precision working 
+    - Not sure how to update multiple states. Might be easy with argnums to dynamic_scale.value_and_grad
+
 ## Testing
 ```
 python -m pytest

@@ -1,8 +1,10 @@
-from email import generator
+import numpy as np
 import flax.linen as nn
 import numpy
 import optax
 import functools
+
+from jax import random
 
 # Flax imports
 from typing import Any
@@ -29,7 +31,7 @@ from utils.create_latents_with_codes import create_latents_with_codes
 
 from models.discriminator import Discriminator
 from models.generator import Generator
-from models.recognition import Recognition
+from models.recognition import Q_head
 
 
 # Loss
@@ -44,7 +46,7 @@ class TrainState(train_state.TrainState):
     dynamic_scale: flax.optim.DynamicScale = None
 
 
-@hydra.main(config_path="conf", config_name="config_imagenette")
+@hydra.main(config_path="conf", config_name="config_MNIST")
 def main(config: DictConfig):
 
     global cfg
@@ -63,7 +65,7 @@ def main(config: DictConfig):
     train_dataset = MNIST(
         root=f"{get_original_cwd()}/data/MNIST",
         train=True,
-        download=False,
+        download=True,
         transform=transform_train,
     )
 
@@ -71,12 +73,12 @@ def main(config: DictConfig):
         train_dataset,
         batch_size=cfg.training.batch_size,
         shuffle=True,
-        num_workers=cfg.training.batch_size,
+        num_workers=cfg.training.workers,
         pin_memory=False,
     )
 
     model_dtype = (
-        jnp.float32 if cfg.training.mixed_precision.dtype == "False" else jnp.float16
+        jnp.float32 if cfg.training.mixed_precision == "False" else jnp.float16
     )
 
     # Setup WandB logging here
@@ -102,35 +104,57 @@ def main(config: DictConfig):
 
     discriminator = Discriminator(filter_list=[64, 128, 1024])
 
-    q_network = Recognition(
-        filter_list=[64, 128, 1024, 128],
+    q_network = Q_head(
+        filter_size = 128,
         num_cts_codes=cfg.model.num_cts_codes,
         num_cat=cfg.model.num_categories,
     )
 
-    generator_state = create_train_state(
+    state_g = create_train_state(
         rng=init_rng_gen,
+        init_func = initialize_generator,
         var_size=noise_size,
         learning_rate=cfg.training.generator_lr,
         weight_decay=cfg.training.weight_decay,
         model=generator,
     )
 
-    q_state = create_train_state(
+    state_q = create_train_state(
         rng=init_rng_q,
+        init_func = initialize_Q_head,
         var_size=28,
         learning_rate=cfg.training.generator_lr,
         weight_decay=cfg.training.weight_decay,
         model=q_network,
     )
 
-    discriminator_state = create_train_state(
+    state_d = create_train_state(
         rng=init_rng_disc,
+        init_func = initialize_discriminator,
         var_size=28,
         learning_rate=cfg.training.discriminator_lr,
         weight_decay=cfg.training.weight_decay,
         model=discriminator,
     )
+
+    del init_rng_disc, init_rng_q, init_rng_gen
+
+    for epoch in range(0, cfg.training.epochs):
+        state_d, state_g, state_q, epoch_metrics_np = train_epoch(state_d, state_g, state_q, rng, train_loader)
+
+        print(
+            f"train epoch: {epoch}, discriminator loss: {epoch_metrics_np['Discriminator Loss']:.4f}, generator loss: {epoch_metrics_np['Generator Loss']:.4f}"
+        )
+        
+
+        wandb.log(
+            {
+                "discriminator loss": epoch_metrics_np['Discriminator Loss'],
+                "generator loss": epoch_metrics_np['Generator Loss'],
+                "loss": (epoch_metrics_np['Discriminator Loss'] + epoch_metrics_np['Generator Loss'])
+            }
+        )
+
 
 
 def initialize_discriminator(key, image_size, model):
@@ -145,11 +169,11 @@ def initialize_discriminator(key, image_size, model):
 
 
 def initialize_Q_head(key, image_size, model):
-    input_shape = (1, image_size, image_size, 1)
+    input_shape = (1, 1, 1, 1024)
 
     @jax.jit
     def init(rng, shape):
-        return model.init(rng, shape, train=True, with_head=True)
+        return model.init(rng, shape, train=True,)
 
     variables = init(rng=key, shape=jnp.ones(input_shape, dtype=model.dtype))
     return variables["params"], variables["batch_stats"]
@@ -172,9 +196,7 @@ def create_train_state(rng, init_func, var_size, learning_rate, weight_decay, mo
 
     # Mask for BN, bias params
     mask = jax.tree_map(lambda x: x.ndim != 1, params)
-    tx = (
-        optax.adamw(learning_rate=learning_rate, weight_decay=weight_decay, mask=mask),
-    )
+    tx = optax.adamw(learning_rate=learning_rate, weight_decay=weight_decay, mask=mask,b1 = 0.5)
 
     state = TrainState.create(
         apply_fn=model.apply,
@@ -187,36 +209,35 @@ def create_train_state(rng, init_func, var_size, learning_rate, weight_decay, mo
     return state
 
 
-# NOTE: This is actually fine since jax.grad has argnums which we differentiate WRT.
-# Just have to be careful which param we put first. Jax defaults to grad WRT first set of params
+
 @jax.jit
 def loss_disc(params_d, params_g, state_g, state_d, real_batch, rng):
 
     z = create_latents_with_codes(
         cfg.model.num_noise,
-        cfg.model.num_cts,
+        cfg.model.num_cts_codes,
         cfg.model.num_categories,
         rng,
-        num_samples=real_batch.shape(0),
+        num_samples=real_batch.shape[0],
     )
 
-    generated_batch, g_new_state = state_g.apply(
-        {"params": params_g, "batch_stats": params_g.batch_stats},
+    generated_batch, g_new_state = state_g.apply_fn(
+        {"params": params_g, "batch_stats": state_g.batch_stats},
         z,
         mutable=["batch_stats"],
         train=True,
     )
 
     scores_real, d_new_state = state_d.apply_fn(
-        {"params": params_d, "batch_stats": params_d.batch_stats},
+        {"params": params_d, "batch_stats": state_d.batch_stats},
         real_batch,
         mutable=["batch_stats"],
         train=True,
         with_head=True,
     )
 
-    scores_fake, d_new_state = d_new_state.apply_fn(
-        {"params": params_d, "batch_stats": d_new_state.batch_stats},
+    scores_fake, d_new_state = state_d.apply_fn(
+        {"params": params_d, "batch_stats": state_d.batch_stats},
         generated_batch,
         mutable=["batch_stats"],
         train=True,
@@ -224,33 +245,32 @@ def loss_disc(params_d, params_g, state_g, state_d, real_batch, rng):
     )
 
     loss_real = binary_cross_entropy_loss(
-        scores=scores_real, labels=jnp.ones(real_batch.shape[0])
+        logit=scores_real, label=jnp.ones(real_batch.shape[0])
     )
 
     loss_fake = binary_cross_entropy_loss(
-        scores=scores_fake, labels=jnp.zeros(real_batch.shape[0])
+        logit=scores_fake, label=jnp.zeros(real_batch.shape[0])
     )
 
     return loss_real + loss_fake, (d_new_state, g_new_state)
 
 
-# NEED TO USE MULTIPLE ARGNUMS HEREEEEEE!
 @jax.jit
 def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng):
     z = create_latents_with_codes(
         cfg.model.num_noise,
-        cfg.model.num_cts,
+        cfg.model.num_cts_codes,
         cfg.model.num_categories,
         rng,
         num_samples=cfg.training.batch_size,
     )
 
-    c_cts = z[cfg.model.num_noise : cfg.model.num_noise + cfg.model.num_cts]
+    c_cts = z[:,cfg.model.num_noise : cfg.model.num_noise + cfg.model.num_cts_codes]
 
-    c_cat = z[cfg.model.num_noise + cfg.model.num_cts :]
+    c_cat = z[:,cfg.model.num_noise + cfg.model.num_cts_codes :]
 
-    generated_batch, g_new_state = state_g.apply(
-        {"params": params_g, "batch_stats": params_g.batch_stats},
+    generated_batch, g_new_state = state_g.apply_fn(
+        {"params": params_g, "batch_stats": state_g.batch_stats},
         z,
         mutable=["batch_stats"],
         train=True,
@@ -265,7 +285,7 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
     )
 
     loss = binary_cross_entropy_loss(
-        scores=scores, labels=jnp.ones(cfg.training.batch_size)
+        logit=scores, label=jnp.ones(cfg.training.batch_size)
     )
 
     # This might be a dumb way to do things - turning off batch stats so we don't update this twice
@@ -293,7 +313,7 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
     q_loss_categorical = cross_entropy_loss(q_logits=q_logits, q_codes=c_cat)
 
     q_loss_cts = q_cts_loss(
-        q_mu=q_mu, q_var=q_var, y=c_cts.reshape(-1, cfg.model.num_cts)
+        q_mu=q_mu, q_var=q_var, y=c_cts.reshape(-1, cfg.model.num_cts_codes)
     )
 
     return loss + q_loss_cts + q_loss_categorical, (
@@ -303,43 +323,45 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
     )
 
 
+@jax.jit
 def train_step(state_d, state_g, state_q, batch, rng):
 
     # 1. Compute discriminator loss
 
     dynamic_scale = state_d.dynamic_scale
     if dynamic_scale:
-        grad_fn = dynamic_scale.value_and_grad(loss_disc, has_aux=True)
-        dynamic_scale, is_fin, aux, grads = grad_fn(
-            state_d.params, state_g.params, state_g, state_d, batch, rng
-        )
+        # grad_fn = dynamic_scale.value_and_grad(loss_disc, has_aux=True)
+        # dynamic_scale, is_fin, aux, grads = grad_fn(
+        #     state_d.params, state_g.params, state_g, state_d, batch, rng
+        # )
+        raise NotImplementedError
 
     else:
         grad_fn = jax.value_and_grad(loss_disc, has_aux=True)
-        aux, grads = grad_fn(state_d.params)
+        (discriminator_loss, (state_d_new, state_g_new)), grads = grad_fn(
+            state_d.params, state_g.params, state_g, state_d, batch, rng
+        )
 
-    # Unsure if we keep track of state_g_new.
-    state_d_new, state_g_new = aux[1]
     state_d = state_d.apply_gradients(
         grads=grads,
         batch_stats=state_d_new["batch_stats"],
     )
 
-    # TODO: Track metrics
 
     if dynamic_scale:
-        # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
-        # params should be restored (= skip this step).
-        state_d = state_d.replace(
-            opt_state=jax.tree_multimap(
-                functools.partial(jnp.where, is_fin),
-                state_d.opt_state,
-                state_d.opt_state,
-            ),
-            params=jax.tree_multimap(
-                functools.partial(jnp.where, is_fin), state_d.params, state_d.params
-            ),
-        )
+        raise NotImplementedError
+        # # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
+        # # params should be restored (= skip this step).
+        # state_d = state_d.replace(
+        #     opt_state=jax.tree_multimap(
+        #         functools.partial(jnp.where, is_fin),
+        #         state_d.opt_state,
+        #         state_d.opt_state,
+        #     ),
+        #     params=jax.tree_multimap(
+        #         functools.partial(jnp.where, is_fin), state_d.params, state_d.params
+        #     ),
+        # )
 
     # 2. Compute
 
@@ -349,7 +371,7 @@ def train_step(state_d, state_g, state_q, batch, rng):
 
     else:
         grad_fn = jax.value_and_grad(loss_generator, argnums=(0, 1), has_aux=True)
-        aux, grads_g, grads_q = grad_fn(
+        (generator_loss, (state_g_new, state_q_new, state_d_new)), grads = grad_fn(
             state_g.params,
             state_q.params,
             state_d.params,
@@ -359,135 +381,51 @@ def train_step(state_d, state_g, state_q, batch, rng):
             rng,
         )
 
-    state_g_new, state_q_new, state_d_new = aux[1]
+        grads_g, grads_q = grads
 
+    
     state_q = state_q.apply_gradients(
-        grads=grads_q, batch_stats=state_q_new["batch stats"]
+        grads=grads_q, batch_stats=state_q_new["batch_stats"]
     )
 
     state_g = state_g.apply_gradients(
-        grads=grads_g, batch_stats=state_g_new["batch stats"]
+        grads=grads_g, batch_stats=state_g_new["batch_stats"]
     )
 
     if dynamic_scale:
         raise NotImplementedError
 
-    return state_d, state_g, state_q
+    metrics = {
+        "Discriminator Loss": discriminator_loss,
+        "Generator Loss": generator_loss,
+    }
+
+    return state_d, state_g, state_q, metrics
 
 
-# @jax.jit
-# #NOTE: Issue with this is that we pass the same latent z through the generator multiple times (weird batch stats)
-# # 1. Just pass it through the first time in inference mode
-# # 2. Maybe don't split these all into multiple steps
-# def train_discriminator_step(state, real_batch, generated_batch):
-#     """Train the discriminator for a single step"""
+def train_epoch(state_d, state_g, state_q, rng, dataloader):
+    """Train for a single epoch."""
+    batch_metrics = []
 
-#     def loss_fn(params):
-#         scores_real, new_state = state.apply_fn(
-#             {"params": params, "batch_stats": state.batch_stats},
-#             real_batch,
-#             mutable=["batch_stats"],
-#             train=True,
-#         )
+    for batch, _ in dataloader:
+        new_rng, subrng = random.split(rng)
+        state_d, state_g, state_q, metrics = train_step(
+            state_d,
+            state_g,
+            state_q,
+            batch,
+            subrng,
+        )
+        batch_metrics.append(metrics)
+        rng = new_rng
 
-#         scores_fake, new_state = new_state.apply_fn(
-#             {"params": params, "batch_stats": new_state.batch_stats},
-#             generated_batch,
-#             mutable=["batch_stats"],
-#             train=True,
-#         )
-
-#         loss_real = binary_cross_entropy_loss(
-#             scores=scores_real, labels=jnp.ones(cfg.training.batch_size)
-#         )
-
-#         loss_fake = binary_cross_entropy_loss(
-#             scores=scores_fake, labels=jnp.zeros(cfg.training.batch_size)
-#         )
-
-#         return loss_real + loss_fake, (scores_real, scores_fake, new_state)
-
-#     dynamic_scale = state.dynamic_scale
-
-#     if dynamic_scale:
-#         grad_fn = dynamic_scale.value_and_grad(loss_fn, has_aux=True)
-#         dynamic_scale, is_fin, aux, grads = grad_fn(state.params)
-
-#     else:
-
-#         grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-#         aux, grads = grad_fn(state.params)
-
-#     scores_real, scores_fake, new_state = aux[1]
-
-#     state = state.apply_gradients(
-#         grads=grads,
-#         batch_stats=new_state["batch_stats"],
-#     )
-
-#     disc_loss = compute_discriminator_metrics(
-#         scores_real=scores_real, scores_fake=scores_fake
-#     )
-
-#     metrics = {"Discriminator Loss": disc_loss}
-
-#     if dynamic_scale:
-#         # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
-#         # params should be restored (= skip this step).
-#         state = state.replace(
-#             opt_state=jax.tree_multimap(
-#                 functools.partial(jnp.where, is_fin), state.opt_state, state.opt_state
-#             ),
-#             params=jax.tree_multimap(
-#                 functools.partial(jnp.where, is_fin), state.params, state.params
-#             ),
-#         )
-
-#     return state, metrics
-
-# @jax.jit
-# def train_generator_step(state_generator, state_discriminator, z):
-
-#     """Train the generator (G(z,c) only) for a single step
-#     """
-
-#     def loss_fn(generator_params, discriminator_params, q_params):
-
-#         # Generate samples. Need to do this here since we're computing gradients
-#         generated_batch, updated_generator_state = state_generator.apply(
-#             {"params": generator_params, "batch_stats": generator_params.batch_stats},
-#             z,
-#             mutable=["batch_stats"],
-#             train=True,
-#         )
+    batch_metrics_np = jax.device_get(batch_metrics)
+    epoch_metrics_np = {
+        k: np.mean([metrics[k] for metrics in batch_metrics_np])
+        for k in batch_metrics_np[0]
+    }
+    return state_d, state_g, state_q, epoch_metrics_np
 
 
-#         # Feeding generated samples through discriminator as positives
-#         scores, new_discriminator_state = state_discriminator.apply_fn(
-#             {"params": discriminator_params, "batch_stats": state_discriminator.batch_stats},
-#             generated_batch,
-#             mutable=["batch_stats"],
-#             train=True,
-#         )
-
-#         generator_loss = binary_cross_entropy_loss(
-#             scores=scores, labels=jnp.ones(cfg.training.batch_size)
-#         )
-
-#         return generator_loss, (scores, new_discriminator_state)
-
-
-def compute_discriminator_metrics(
-    *,
-    scores_real,
-    scores_fake,
-):
-    loss_real = binary_cross_entropy_loss(
-        scores=scores_real, labels=jnp.ones(cfg.training.batch_size)
-    )
-
-    loss_fake = binary_cross_entropy_loss(
-        scores=scores_fake, labels=jnp.zeros(cfg.training.batch_size)
-    )
-
-    return loss_real + loss_fake
+if __name__ == '__main__':
+    main()

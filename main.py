@@ -187,7 +187,9 @@ def create_train_state(rng, init_func, var_size, learning_rate, weight_decay, mo
     return state
 
 
-# NOTE: This is actually fine since jax.grad has argnums which we differentiate WRT. Just have to be careful which param we put first. Jax defaults to grad WRT first set of params
+# NOTE: This is actually fine since jax.grad has argnums which we differentiate WRT.
+# Just have to be careful which param we put first. Jax defaults to grad WRT first set of params
+@jax.jit
 def loss_disc(params_d, params_g, state_g, state_d, real_batch, rng):
 
     z = create_latents_with_codes(
@@ -213,7 +215,7 @@ def loss_disc(params_d, params_g, state_g, state_d, real_batch, rng):
         with_head=True,
     )
 
-    scores_fake, new_state = d_new_state.apply_fn(
+    scores_fake, d_new_state = d_new_state.apply_fn(
         {"params": params_d, "batch_stats": d_new_state.batch_stats},
         generated_batch,
         mutable=["batch_stats"],
@@ -229,10 +231,11 @@ def loss_disc(params_d, params_g, state_g, state_d, real_batch, rng):
         scores=scores_fake, labels=jnp.zeros(real_batch.shape[0])
     )
 
-    return loss_real + loss_fake, (new_state, g_new_state)
+    return loss_real + loss_fake, (d_new_state, g_new_state)
 
 
 # NEED TO USE MULTIPLE ARGNUMS HEREEEEEE!
+@jax.jit
 def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng):
     z = create_latents_with_codes(
         cfg.model.num_noise,
@@ -298,6 +301,78 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
         q_new_state,
         d_new_state,
     )
+
+
+def train_step(state_d, state_g, state_q, batch, rng):
+
+    # 1. Compute discriminator loss
+
+    dynamic_scale = state_d.dynamic_scale
+    if dynamic_scale:
+        grad_fn = dynamic_scale.value_and_grad(loss_disc, has_aux=True)
+        dynamic_scale, is_fin, aux, grads = grad_fn(
+            state_d.params, state_g.params, state_g, state_d, batch, rng
+        )
+
+    else:
+        grad_fn = jax.value_and_grad(loss_disc, has_aux=True)
+        aux, grads = grad_fn(state_d.params)
+
+    # Unsure if we keep track of state_g_new.
+    state_d_new, state_g_new = aux[1]
+    state_d = state_d.apply_gradients(
+        grads=grads,
+        batch_stats=state_d_new["batch_stats"],
+    )
+
+    # TODO: Track metrics
+
+    if dynamic_scale:
+        # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
+        # params should be restored (= skip this step).
+        state_d = state_d.replace(
+            opt_state=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin),
+                state_d.opt_state,
+                state_d.opt_state,
+            ),
+            params=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin), state_d.params, state_d.params
+            ),
+        )
+
+    # 2. Compute
+
+    dynamic_scale = state_q.dynamic_scale
+    if dynamic_scale:
+        raise NotImplementedError
+
+    else:
+        grad_fn = jax.value_and_grad(loss_generator, argnums=(0, 1), has_aux=True)
+        aux, grads_g, grads_q = grad_fn(
+            state_g.params,
+            state_q.params,
+            state_d.params,
+            state_g,
+            state_q,
+            state_d,
+            rng,
+        )
+
+    state_g_new, state_q_new, state_d_new = aux[1]
+
+    state_q = state_q.apply_gradients(
+        grads=grads_q, batch_stats=state_q_new["batch stats"]
+    )
+
+    state_g = state_g.apply_gradients(
+        grads=grads_g, batch_stats=state_g_new["batch stats"]
+    )
+
+    if dynamic_scale:
+        raise NotImplementedError
+
+    return state_d, state_g, state_q
 
 
 # @jax.jit

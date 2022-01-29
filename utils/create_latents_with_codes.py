@@ -16,16 +16,14 @@ def create_latents_with_codes(num_noise, num_cts, num_cat, rng_key, num_samples)
     """
 
     # Noise
-
     z = jax.random.normal(rng_key, shape=(num_samples, num_noise))
 
-    # Continuous
-
+    # Continuous code
     for _ in range(num_cts):
         c = jax.random.uniform(key=rng_key, shape=(num_samples, 1), minval=-1, maxval=1)
         z = jnp.concatenate([z, c], axis=1)
 
-    # Categorical
+    # Categorical code
     logit_probs = [1 / num_cat for _ in range(num_cat)]
     c_idx = jax.random.categorical(
         key=rng_key, logits=jnp.array(logit_probs), shape=(num_samples,)

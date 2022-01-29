@@ -9,6 +9,7 @@ InfoGAN (cite) proposes an updated loss function for GANs to learn disentangled 
 1. Basic training loop done
     1.1 Loss functions - requires 3 different loss functions (DONE)
     1.2 Optimizers - AdamW probably - do this via ```weight_decay``` transform in optax - add param masking too
+    1.3 Add train_step code 
 
 2. Code to generate samples and display images 
     2.1 Pretty much done I think

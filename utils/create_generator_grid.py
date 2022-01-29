@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from utils.create_latents_with_codes import create_latents_with_codes
 
 
-def create_latent_grid(num_images, model, rng_key, image_dims=(10, 10)):
+def create_latent_grid(num_images, state, params, rng_key, image_dims=(10, 10)):
 
     # TODO: Ability to vary codes
 
@@ -13,10 +13,10 @@ def create_latent_grid(num_images, model, rng_key, image_dims=(10, 10)):
         num_noise=62, num_cts=2, num_cat=10, rng_key=rng_key, num_samples=num_images
     )
 
-    output, _ = model.apply(
-        {"params": params, "batch_stats": batch_stats},
+    output = state.apply_fn(
+        {"params": params, "batch_stats": state.batch_stats},
         latent_var,
-        mutable=["batch_stats"],
+        mutable=False,
         train=False,
     )
 
@@ -43,26 +43,4 @@ def create_latent_grid(num_images, model, rng_key, image_dims=(10, 10)):
         ax.set_xticks([])
         ax.set_yticks([])
 
-    plt.show()
-
-
-if __name__ == "__main__":
-
-    model = Generator()
-
-    def initialized(key, latent_size, model):
-        input_shape = (1, latent_size)
-
-        @jax.jit
-        def init(rng, shape):
-            return model.init(rng, shape, train=True)
-
-        variables = init(rng=key, shape=jnp.ones(input_shape, dtype=model.dtype))
-        return variables["params"], variables["batch_stats"]
-
-    rng = jax.random.PRNGKey(0)
-    rng, init_rng = jax.random.split(rng)
-
-    params, batch_stats = initialized(rng, 74, model)
-
-    create_latent_grid(100, model, rng_key=rng)
+    return fig

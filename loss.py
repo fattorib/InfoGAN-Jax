@@ -12,8 +12,9 @@ def binary_cross_entropy_loss(*, logit, label):
 
     """
 
-    return jnp.mean(jnp.maximum(logit, 0) - logit * label + jnp.log(1 + jnp.exp(-jnp.abs(logit))))
-
+    return jnp.mean(
+        jnp.maximum(logit, 0) - logit * label + jnp.log(1 + jnp.exp(-jnp.abs(logit)))
+    )
 
 
 @jax.jit

@@ -28,6 +28,7 @@ from utils.flax_utils import (
     FlattenAndCast,
 )
 from utils.create_latents_with_codes import create_latents_with_codes
+from utils.create_generator_grid import create_latent_grid
 
 from models.discriminator import Discriminator
 from models.generator import Generator
@@ -105,14 +106,14 @@ def main(config: DictConfig):
     discriminator = Discriminator(filter_list=[64, 128, 1024])
 
     q_network = Q_head(
-        filter_size = 128,
+        filter_size=128,
         num_cts_codes=cfg.model.num_cts_codes,
         num_cat=cfg.model.num_categories,
     )
 
     state_g = create_train_state(
         rng=init_rng_gen,
-        init_func = initialize_generator,
+        init_func=initialize_generator,
         var_size=noise_size,
         learning_rate=cfg.training.generator_lr,
         weight_decay=cfg.training.weight_decay,
@@ -121,7 +122,7 @@ def main(config: DictConfig):
 
     state_q = create_train_state(
         rng=init_rng_q,
-        init_func = initialize_Q_head,
+        init_func=initialize_Q_head,
         var_size=28,
         learning_rate=cfg.training.generator_lr,
         weight_decay=cfg.training.weight_decay,
@@ -130,7 +131,7 @@ def main(config: DictConfig):
 
     state_d = create_train_state(
         rng=init_rng_disc,
-        init_func = initialize_discriminator,
+        init_func=initialize_discriminator,
         var_size=28,
         learning_rate=cfg.training.discriminator_lr,
         weight_decay=cfg.training.weight_decay,
@@ -140,21 +141,44 @@ def main(config: DictConfig):
     del init_rng_disc, init_rng_q, init_rng_gen
 
     for epoch in range(0, cfg.training.epochs):
-        state_d, state_g, state_q, epoch_metrics_np = train_epoch(state_d, state_g, state_q, rng, train_loader)
+        state_d, state_g, state_q, epoch_metrics_np = train_epoch(
+            state_d, state_g, state_q, rng, train_loader
+        )
 
         print(
             f"train epoch: {epoch}, discriminator loss: {epoch_metrics_np['Discriminator Loss']:.4f}, generator loss: {epoch_metrics_np['Generator Loss']:.4f}"
         )
-        
 
-        wandb.log(
-            {
-                "discriminator loss": epoch_metrics_np['Discriminator Loss'],
-                "generator loss": epoch_metrics_np['Generator Loss'],
-                "loss": (epoch_metrics_np['Discriminator Loss'] + epoch_metrics_np['Generator Loss'])
-            }
-        )
+        if epoch % 10 == 0:
+            image_generated = create_latent_grid(
+                100, state_g, state_g.params, rng_key=rng
+            )
 
+            image1 = wandb.Image(image_generated, caption="Generator Samples")
+
+            wandb.log(
+                {
+                    "discriminator loss": epoch_metrics_np["Discriminator Loss"],
+                    "generator loss": epoch_metrics_np["Generator Loss"],
+                    "loss": (
+                        epoch_metrics_np["Discriminator Loss"]
+                        + epoch_metrics_np["Generator Loss"]
+                    ),
+                    "generator samples": image1,
+                }
+            )
+
+        else:
+            wandb.log(
+                {
+                    "discriminator loss": epoch_metrics_np["Discriminator Loss"],
+                    "generator loss": epoch_metrics_np["Generator Loss"],
+                    "loss": (
+                        epoch_metrics_np["Discriminator Loss"]
+                        + epoch_metrics_np["Generator Loss"]
+                    ),
+                }
+            )
 
 
 def initialize_discriminator(key, image_size, model):
@@ -173,7 +197,11 @@ def initialize_Q_head(key, image_size, model):
 
     @jax.jit
     def init(rng, shape):
-        return model.init(rng, shape, train=True,)
+        return model.init(
+            rng,
+            shape,
+            train=True,
+        )
 
     variables = init(rng=key, shape=jnp.ones(input_shape, dtype=model.dtype))
     return variables["params"], variables["batch_stats"]
@@ -196,7 +224,9 @@ def create_train_state(rng, init_func, var_size, learning_rate, weight_decay, mo
 
     # Mask for BN, bias params
     mask = jax.tree_map(lambda x: x.ndim != 1, params)
-    tx = optax.adamw(learning_rate=learning_rate, weight_decay=weight_decay, mask=mask,b1 = 0.5)
+    tx = optax.adamw(
+        learning_rate=learning_rate, weight_decay=weight_decay, mask=mask, b1=0.5
+    )
 
     state = TrainState.create(
         apply_fn=model.apply,
@@ -207,7 +237,6 @@ def create_train_state(rng, init_func, var_size, learning_rate, weight_decay, mo
         dynamic_scale=flax.optim.DynamicScale() if model.dtype == jnp.float16 else None,
     )
     return state
-
 
 
 @jax.jit
@@ -265,9 +294,9 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
         num_samples=cfg.training.batch_size,
     )
 
-    c_cts = z[:,cfg.model.num_noise : cfg.model.num_noise + cfg.model.num_cts_codes]
+    c_cts = z[:, cfg.model.num_noise : cfg.model.num_noise + cfg.model.num_cts_codes]
 
-    c_cat = z[:,cfg.model.num_noise + cfg.model.num_cts_codes :]
+    c_cat = z[:, cfg.model.num_noise + cfg.model.num_cts_codes :]
 
     generated_batch, g_new_state = state_g.apply_fn(
         {"params": params_g, "batch_stats": state_g.batch_stats},
@@ -347,7 +376,6 @@ def train_step(state_d, state_g, state_q, batch, rng):
         batch_stats=state_d_new["batch_stats"],
     )
 
-
     if dynamic_scale:
         raise NotImplementedError
         # # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
@@ -383,7 +411,6 @@ def train_step(state_d, state_g, state_q, batch, rng):
 
         grads_g, grads_q = grads
 
-    
     state_q = state_q.apply_gradients(
         grads=grads_q, batch_stats=state_q_new["batch_stats"]
     )
@@ -427,5 +454,5 @@ def train_epoch(state_d, state_g, state_q, rng, dataloader):
     return state_d, state_g, state_q, epoch_metrics_np
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

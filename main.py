@@ -156,28 +156,28 @@ def main(config: DictConfig):
                 100, state_g, state_g.params, rng_key=rng
             )
 
-
             image1 = wandb.Image(image_generated, caption="Generator Samples")
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, categorical_idx = 0
+                100, state_g, state_g.params, rng_key=rng, categorical_idx=0
             )
-            image2 = wandb.Image(image_generated, caption="Generator Samples (varying categorical code)")
+            image2 = wandb.Image(
+                image_generated, caption="Generator Samples (varying categorical code)"
+            )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx = 0
+                100, state_g, state_g.params, rng_key=rng, cts_idx=0
             )
-            image3 = wandb.Image(image_generated, caption="Generator Samples (varying cts c_1)")
-
+            image3 = wandb.Image(
+                image_generated, caption="Generator Samples (varying cts c_1)"
+            )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx = 1
+                100, state_g, state_g.params, rng_key=rng, cts_idx=1
             )
-            image4 = wandb.Image(image_generated, caption="Generator Samples (varying cts c_2)")
-
-
-
-
+            image4 = wandb.Image(
+                image_generated, caption="Generator Samples (varying cts c_2)"
+            )
 
             wandb.log(
                 {

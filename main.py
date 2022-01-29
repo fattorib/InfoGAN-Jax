@@ -9,6 +9,7 @@ from jax import random
 # Flax imports
 from typing import Any
 import flax
+from flax.training.checkpoints import save_checkpoint
 from flax.training import train_state
 import jax.numpy as jnp
 import jax
@@ -194,6 +195,8 @@ def main(config: DictConfig):
                 }
             )
 
+            save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g, keep=3)
+
         else:
             wandb.log(
                 {
@@ -205,6 +208,8 @@ def main(config: DictConfig):
                     ),
                 }
             )
+
+        save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g, keep=3)
 
 
 def initialize_discriminator(key, image_size, model):

@@ -123,7 +123,7 @@ def main(config: DictConfig):
     state_q = create_train_state(
         rng=init_rng_q,
         init_func=initialize_Q_head,
-        var_size=28,
+        var_size=1024,
         learning_rate=cfg.training.generator_lr,
         weight_decay=cfg.training.weight_decay,
         model=q_network,
@@ -150,11 +150,34 @@ def main(config: DictConfig):
         )
 
         if epoch % 10 == 0:
+
+            # Create basic samples
             image_generated = create_latent_grid(
                 100, state_g, state_g.params, rng_key=rng
             )
 
+
             image1 = wandb.Image(image_generated, caption="Generator Samples")
+
+            image_generated = create_latent_grid(
+                100, state_g, state_g.params, rng_key=rng, categorical_idx = 0
+            )
+            image2 = wandb.Image(image_generated, caption="Generator Samples (varying categorical code)")
+
+            image_generated = create_latent_grid(
+                100, state_g, state_g.params, rng_key=rng, cts_idx = 0
+            )
+            image3 = wandb.Image(image_generated, caption="Generator Samples (varying cts c_1)")
+
+
+            image_generated = create_latent_grid(
+                100, state_g, state_g.params, rng_key=rng, cts_idx = 1
+            )
+            image4 = wandb.Image(image_generated, caption="Generator Samples (varying cts c_2)")
+
+
+
+
 
             wandb.log(
                 {
@@ -165,6 +188,9 @@ def main(config: DictConfig):
                         + epoch_metrics_np["Generator Loss"]
                     ),
                     "generator samples": image1,
+                    "generator samples (varying categorical code)": image2,
+                    "generator samples (varying cts c_1)": image3,
+                    "generator samples (varying cts c_2)": image4,
                 }
             )
 
@@ -192,8 +218,8 @@ def initialize_discriminator(key, image_size, model):
     return variables["params"], variables["batch_stats"]
 
 
-def initialize_Q_head(key, image_size, model):
-    input_shape = (1, 1, 1, 1024)
+def initialize_Q_head(key, filter_size, model):
+    input_shape = (1, 1, 1, filter_size)
 
     @jax.jit
     def init(rng, shape):
@@ -318,10 +344,10 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
     )
 
     # This might be a dumb way to do things - turning off batch stats so we don't update this twice
-    features_out, _ = state_d.apply_fn(
+    features_out = state_d.apply_fn(
         {"params": params_d, "batch_stats": state_d.batch_stats},
         generated_batch,
-        mutable=["batch_stats"],
+        mutable=False,
         train=False,
         with_head=False,
     )

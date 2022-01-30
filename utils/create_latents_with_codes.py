@@ -89,7 +89,7 @@ def create_latents_manual_cts(
     # Continuous code
     for idx in range(num_cts):
         if idx == cts_idx:
-            c = jnp.array(jnp.tile(jnp.linspace(-2, 2, 10), num_cat)).reshape(
+            c = jnp.array(jnp.tile(jnp.linspace(-1, 1, 10), num_cat)).reshape(
                 num_samples, 1
             )
             z = jnp.concatenate([z, c], axis=1)

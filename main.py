@@ -154,39 +154,68 @@ def main(config: DictConfig):
 
             # Create basic samples
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, 
-                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
+                100,
+                state_g,
+                state_g.params,
+                rng_key=rng,
+                num_noise=cfg.model.num_noise,
+                num_cts=cfg.model.num_cts_codes,
+                num_cat=cfg.model.num_categories,
             )
 
             image1 = wandb.Image(image_generated, caption="Generator Samples")
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, categorical_idx=0,
-                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
+                100,
+                state_g,
+                state_g.params,
+                rng_key=rng,
+                categorical_idx=0,
+                num_noise=cfg.model.num_noise,
+                num_cts=cfg.model.num_cts_codes,
+                num_cat=cfg.model.num_categories,
             )
             image2 = wandb.Image(
                 image_generated, caption="Generator Samples (varying categorical code)"
             )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx=0,
-                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
+                100,
+                state_g,
+                state_g.params,
+                rng_key=rng,
+                cts_idx=0,
+                num_noise=cfg.model.num_noise,
+                num_cts=cfg.model.num_cts_codes,
+                num_cat=cfg.model.num_categories,
             )
             image3 = wandb.Image(
                 image_generated, caption="Generator Samples (varying cts c_1)"
             )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx=1,
-                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
+                100,
+                state_g,
+                state_g.params,
+                rng_key=rng,
+                cts_idx=1,
+                num_noise=cfg.model.num_noise,
+                num_cts=cfg.model.num_cts_codes,
+                num_cat=cfg.model.num_categories,
             )
             image4 = wandb.Image(
                 image_generated, caption="Generator Samples (varying cts c_2)"
             )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx=2,
-                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
+                100,
+                state_g,
+                state_g.params,
+                rng_key=rng,
+                cts_idx=2,
+                num_noise=cfg.model.num_noise,
+                num_cts=cfg.model.num_cts_codes,
+                num_cat=cfg.model.num_categories,
             )
             image5 = wandb.Image(
                 image_generated, caption="Generator Samples (varying cts c_3)"
@@ -208,7 +237,13 @@ def main(config: DictConfig):
                 }
             )
 
-            save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g,step = epoch, keep=3, overwrite = True)
+            save_checkpoint(
+                f"{get_original_cwd()}/saved_checkpoints",
+                state_g,
+                step=epoch,
+                keep=3,
+                overwrite=True,
+            )
 
         else:
             wandb.log(
@@ -222,7 +257,13 @@ def main(config: DictConfig):
                 }
             )
 
-    save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g, step = epoch+1, keep=3, overwrite = True)
+    save_checkpoint(
+        f"{get_original_cwd()}/saved_checkpoints",
+        state_g,
+        step=epoch + 1,
+        keep=3,
+        overwrite=True,
+    )
 
 
 def initialize_discriminator(key, image_size, model):
@@ -389,10 +430,15 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
         q_mu=q_mu, q_var=q_var, y=c_cts.reshape(-1, cfg.model.num_cts_codes)
     )
 
-    return loss + cfg.training.lambda_cts*q_loss_cts + cfg.training.lambda_cat*q_loss_categorical, (
-        g_new_state,
-        q_new_state,
-        d_new_state,
+    return (
+        loss
+        + cfg.training.lambda_cts * q_loss_cts
+        + cfg.training.lambda_cat * q_loss_categorical,
+        (
+            g_new_state,
+            q_new_state,
+            d_new_state,
+        ),
     )
 
 

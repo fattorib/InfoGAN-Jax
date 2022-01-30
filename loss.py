@@ -34,8 +34,9 @@ def q_cts_loss(*, q_mu, q_var, y):
     TODO: Still don't completely understand why we use this loss function
     """
 
-    logli = -0.5 * jnp.log(((q_var*2*jnp.pi) + 1e-6)) - ((y - q_mu)**2)/(q_var*2.0 + 1e-6)
-    nll = -jnp.mean(jnp.sum(logli, axis = 1))
+    logli = -0.5 * jnp.log(((q_var * 2 * jnp.pi) + 1e-6)) - ((y - q_mu) ** 2) / (
+        q_var * 2.0 + 1e-6
+    )
+    nll = -jnp.mean(jnp.sum(logli, axis=1))
 
     return nll
-

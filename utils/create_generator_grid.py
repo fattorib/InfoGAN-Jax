@@ -17,25 +17,26 @@ def create_latent_grid(
     image_dims=(10, 10),
     categorical_idx=None,
     cts_idx=None,
+    num_noise = 62, 
+    num_cts = 2,
+    num_cat = 10,
 ):
 
     if categorical_idx is None and cts_idx is None:
         latent_var = create_latents_with_codes(
-            num_noise=62, num_cts=2, num_cat=10, rng_key=rng_key, num_samples=num_images
+            num_noise=num_noise, num_cts=num_cts, num_cat=num_cat, rng_key=rng_key, num_samples=num_images
         )
 
     elif categorical_idx is not None:
         assert cts_idx is None
         latent_var = create_latents_manual_categorical(
-            num_noise=62, num_cts=2, num_cat=10, rng_key=rng_key, num_samples=100
+            num_noise=num_noise, num_cts=num_cts, num_cat=num_cat, rng_key=rng_key, num_samples=100
         )
 
     elif cts_idx is not None:
         assert categorical_idx is None
         latent_var = create_latents_manual_cts(
-            num_noise=62,
-            num_cts=2,
-            num_cat=10,
+            num_noise, num_cts=num_cts, num_cat=num_cat,
             rng_key=rng_key,
             cts_idx=cts_idx,
             num_samples=100,

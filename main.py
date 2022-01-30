@@ -154,34 +154,39 @@ def main(config: DictConfig):
 
             # Create basic samples
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng
+                100, state_g, state_g.params, rng_key=rng, 
+                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
             )
 
             image1 = wandb.Image(image_generated, caption="Generator Samples")
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, categorical_idx=0
+                100, state_g, state_g.params, rng_key=rng, categorical_idx=0,
+                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
             )
             image2 = wandb.Image(
                 image_generated, caption="Generator Samples (varying categorical code)"
             )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx=0
+                100, state_g, state_g.params, rng_key=rng, cts_idx=0,
+                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
             )
             image3 = wandb.Image(
                 image_generated, caption="Generator Samples (varying cts c_1)"
             )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx=1
+                100, state_g, state_g.params, rng_key=rng, cts_idx=1,
+                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
             )
             image4 = wandb.Image(
                 image_generated, caption="Generator Samples (varying cts c_2)"
             )
 
             image_generated = create_latent_grid(
-                100, state_g, state_g.params, rng_key=rng, cts_idx=2
+                100, state_g, state_g.params, rng_key=rng, cts_idx=2,
+                num_noise = cfg.model.num_noise, num_cts = cfg.model.num_cts_codes, num_cat = cfg.model.num_categories
             )
             image5 = wandb.Image(
                 image_generated, caption="Generator Samples (varying cts c_3)"

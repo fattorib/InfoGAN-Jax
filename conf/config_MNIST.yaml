@@ -8,7 +8,8 @@ training:
   mixed_precision: True 
   discriminator_lr: 2e-4
   generator_lr: 1e-3
-  lambda: 1
+  lambda_cat: 1.0
+  lambda_cts: 0.1
 
 model:
   num_noise: 62

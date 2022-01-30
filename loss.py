@@ -34,9 +34,8 @@ def q_cts_loss(*, q_mu, q_var, y):
     TODO: Still don't completely understand why we use this loss function
     """
 
-    # LL for single example
-    loglikelihood = (1 / (2 * (q_var ** 2 + 1e-6))) * (
-        (y - q_mu) ** (2) + 0.5 * jnp.log(2 * jnp.pi * q_var + 1e-6)
-    )
+    logli = -0.5 * jnp.log(((q_var*2*jnp.pi) + 1e-6)) - ((y - q_mu)**2)/(q_var*2.0 + 1e-6)
+    nll = -jnp.mean(jnp.sum(logli, axis = 1))
 
-    return -jnp.mean(jnp.sum(-1 * loglikelihood, axis=-1))
+    return nll
+

@@ -180,6 +180,13 @@ def main(config: DictConfig):
                 image_generated, caption="Generator Samples (varying cts c_2)"
             )
 
+            image_generated = create_latent_grid(
+                100, state_g, state_g.params, rng_key=rng, cts_idx=2
+            )
+            image5 = wandb.Image(
+                image_generated, caption="Generator Samples (varying cts c_3)"
+            )
+
             wandb.log(
                 {
                     "discriminator loss": epoch_metrics_np["Discriminator Loss"],
@@ -192,10 +199,11 @@ def main(config: DictConfig):
                     "generator samples (varying categorical code)": image2,
                     "generator samples (varying cts c_1)": image3,
                     "generator samples (varying cts c_2)": image4,
+                    "generator samples (varying cts c_3)": image5,
                 }
             )
 
-            save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g, keep=3)
+            save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g,step = epoch, keep=3, overwrite = True)
 
         else:
             wandb.log(
@@ -209,7 +217,7 @@ def main(config: DictConfig):
                 }
             )
 
-        save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g, keep=3)
+    save_checkpoint(f"{get_original_cwd()}/saved_checkpoints", state_g, step = epoch+1, keep=3, overwrite = True)
 
 
 def initialize_discriminator(key, image_size, model):
@@ -376,7 +384,7 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
         q_mu=q_mu, q_var=q_var, y=c_cts.reshape(-1, cfg.model.num_cts_codes)
     )
 
-    return loss + q_loss_cts + q_loss_categorical, (
+    return loss + cfg.training.lambda_cts*q_loss_cts + cfg.training.lambda_cat*q_loss_categorical, (
         g_new_state,
         q_new_state,
         d_new_state,

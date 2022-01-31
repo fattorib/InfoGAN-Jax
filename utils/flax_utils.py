@@ -48,12 +48,3 @@ class NumpyLoader(data.DataLoader):
 class FlattenAndCast(object):
     def __call__(self, pic):
         return np.array(pic.permute(1, 2, 0), dtype=jnp.float32)
-
-
-def create_cos_anneal_schedule(base_lr, min_lr, max_steps):
-    def learning_rate_fn(step):
-        cosine_decay = (0.5) * (1 + jnp.cos(jnp.pi * step / max_steps))
-        decayed = (1 - min_lr) * cosine_decay + min_lr
-        return base_lr * decayed
-
-    return learning_rate_fn

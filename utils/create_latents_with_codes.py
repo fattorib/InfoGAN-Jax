@@ -42,9 +42,9 @@ def create_latents_with_codes(num_noise, num_cts, num_cat, rng_key, num_samples)
 def create_latents_manual_categorical(
     num_noise, num_cts, num_cat, rng_key, num_samples=100
 ):
-    """Create a latent variable to feed into the generator.
+    """Create a latent variable to feed into the generator. Using fixed categorical variables.
 
-    Args:
+    - Same args as create_latents_with_codes
 
     """
 
@@ -77,9 +77,9 @@ def create_latents_manual_categorical(
 def create_latents_manual_cts(
     num_noise, num_cts, num_cat, rng_key, cts_idx, num_samples=100
 ):
-    """Create a latent variable to feed into the generator.
+    """Create latent variable to feed into generator. Continuous code, c_{cts_idx-1}, is manually varied from -2 to 2. 
 
-    Args:
+    - All other args are the same as create_latents_with_codes
 
     """
 

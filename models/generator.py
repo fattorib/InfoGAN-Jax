@@ -17,9 +17,7 @@ class Generator(nn.Module):
     """Basic generator network for MNIST
 
     Args:
-        dtype (dtypedef): 
-
-        kernel_init (Callable): 
+        dtype (dtypedef): Model dtype. Defaults to float32
     
     References:
         Chen et al, 2016: https://arxiv.org/abs/1606.03657
@@ -95,22 +93,3 @@ class Generator(nn.Module):
 
         return nn.sigmoid(x)
 
-
-if __name__ == "__main__":
-
-    model = Generator()
-
-    def initialized(key, latent_size, model):
-        input_shape = (1, latent_size)
-
-        @jax.jit
-        def init(rng, shape):
-            return model.init(rng, shape, train=True)
-
-        variables = init(rng=key, shape=jnp.ones(input_shape, dtype=model.dtype))
-        return variables["params"], variables["batch_stats"]
-
-    rng = jax.random.PRNGKey(0)
-    rng, init_rng = jax.random.split(rng)
-
-    params, batch_stats = initialized(rng, 74, model)

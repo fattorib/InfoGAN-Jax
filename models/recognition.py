@@ -18,17 +18,14 @@ class Q_head(nn.Module):
     """Basic Q network for MNIST
 
     Args:
-        filter_size (int): 
+        filter_size (int): Input number of filters.
 
-        num_channels (int):
+        dtype (dtypedef): Model dtype. Defaults to float32
 
-        dtype (dtypedef): 
+        num_cts_codes (int): Number of continuous codes to use. Defaults to 2. 
 
-        num_cts_codes (int):
-
-        num_cat (int):
-
-        num_channels (int): 
+        num_cat (int): Number of categories for the single categorical variable. Defaults to 10. 
+): 
     
     References:
         Chen et al, 2016: https://arxiv.org/abs/1606.03657
@@ -46,8 +43,6 @@ class Q_head(nn.Module):
     num_cts_codes: int = 2
 
     num_cat: int = 10
-
-    num_channels: int = 1
 
     @nn.compact
     def __call__(self, x, train):
@@ -109,21 +104,3 @@ class Q_head(nn.Module):
             x_mean.squeeze(axis=[1, 2]),
             jnp.exp(x_var).squeeze(axis=[1, 2]),
         )
-
-
-if __name__ == "__main__":
-
-    model = Q_head(filter_size=128)
-
-    def initialized(key, image_size, model):
-        input_shape = (1, image_size, image_size, 1)
-
-        @jax.jit
-        def init(rng, shape):
-            return model.init(rng, shape, train=True)
-
-        variables = init(rng=key, shape=jnp.ones(input_shape, dtype=model.dtype))
-        return variables["params"], variables["batch_stats"]
-
-    rng = jax.random.PRNGKey(0)
-    rng, init_rng = jax.random.split(rng)

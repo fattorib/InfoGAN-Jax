@@ -17,13 +17,11 @@ class Discriminator(nn.Module):
     """Basic discriminator network for MNIST
 
     Args:
-        filter_list (Sequence[int]): 
+        filter_list (Sequence[int]): Sequence of filters to use. 
 
-        num_channels (int):
+        num_channels (int): Number of input channels for image. Defaults to 1. 
 
-        dtype (dtypedef): 
-
-        kernel_init (Callable): 
+        dtype (dtypedef): Model dtype. Defaults to float32
     
     References:
         Chen et al, 2016: https://arxiv.org/abs/1606.03657

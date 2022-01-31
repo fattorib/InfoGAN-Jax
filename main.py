@@ -79,9 +79,7 @@ def main(config: DictConfig):
         pin_memory=False,
     )
 
-    model_dtype = (
-        jnp.float32 if cfg.training.mixed_precision == False else jnp.float16
-    )
+    model_dtype = jnp.float32 if cfg.training.mixed_precision == False else jnp.float16
 
     # Setup WandB logging here
     wandb_run = wandb.init(project="InfoGAN")
@@ -102,15 +100,15 @@ def main(config: DictConfig):
         + cfg.model.num_cat_codes * cfg.model.num_categories
     )
 
-    generator = Generator(dtype = model_dtype)
+    generator = Generator(dtype=model_dtype)
 
-    discriminator = Discriminator(filter_list=[64, 128, 1024],dtype = model_dtype)
+    discriminator = Discriminator(filter_list=[64, 128, 1024], dtype=model_dtype)
 
     q_network = Q_head(
         filter_size=128,
         num_cts_codes=cfg.model.num_cts_codes,
         num_cat=cfg.model.num_categories,
-        dtype = model_dtype
+        dtype=model_dtype,
     )
 
     state_g = create_train_state(
@@ -437,9 +435,12 @@ def train_step(state_d, state_g, state_q, batch, rng):
     if dynamic_scale:
         grad_fn = dynamic_scale.value_and_grad(loss_disc, has_aux=True)
 
-        dynamic_scale, is_fin, (discriminator_loss, (state_d_new, state_g_new)), grads = grad_fn(
-            state_d.params, state_g.params, state_g, state_d, batch, rng
-        )
+        (
+            dynamic_scale,
+            is_fin,
+            (discriminator_loss, (state_d_new, state_g_new)),
+            grads,
+        ) = grad_fn(state_d.params, state_g.params, state_g, state_d, batch, rng)
 
         # dynamic_scale, is_fin, aux, grads = grad_fn(
         #     state_d.params, state_g.params, state_g, state_d, batch, rng
@@ -475,11 +476,18 @@ def train_step(state_d, state_g, state_q, batch, rng):
     # 2. Compute generator loss
 
     dynamic_scale = state_q.dynamic_scale
-    
+
     if dynamic_scale:
         # raise NotImplementedError
-        grad_fn = dynamic_scale.value_and_grad(loss_generator, argnums=(0, 1), has_aux=True)
-        dynamic_scale, is_fin, (generator_loss, (state_g_new, state_q_new, state_d_new)), grads = grad_fn(
+        grad_fn = dynamic_scale.value_and_grad(
+            loss_generator, argnums=(0, 1), has_aux=True
+        )
+        (
+            dynamic_scale,
+            is_fin,
+            (generator_loss, (state_g_new, state_q_new, state_d_new)),
+            grads,
+        ) = grad_fn(
             state_g.params,
             state_q.params,
             state_d.params,
@@ -490,7 +498,7 @@ def train_step(state_d, state_g, state_q, batch, rng):
         )
 
         grads_g, grads_q = grads
-        
+
         # dynamic_scale_q, dynamic_scale_g = dynamic_scale
 
     else:
@@ -538,8 +546,6 @@ def train_step(state_d, state_g, state_q, batch, rng):
                 functools.partial(jnp.where, is_fin), state_g.params, state_g.params
             ),
         )
-
-
 
     metrics = {
         "Discriminator Loss": discriminator_loss,

@@ -8,6 +8,7 @@ from flax import linen as nn
 import copy
 from functools import partial
 import numpy as np
+from utils.zero_init import zeros_
 
 ModuleDef = Any
 dtypedef = Any
@@ -18,10 +19,10 @@ class Generator(nn.Module):
 
     Args:
         dtype (dtypedef): Model dtype. Defaults to float32
-    
+
     References:
         Chen et al, 2016: https://arxiv.org/abs/1606.03657
-    
+
     """
 
     # dtype for fp16/32 training
@@ -41,6 +42,8 @@ class Generator(nn.Module):
             momentum=0.1,
             epsilon=1e-5,
             dtype=self.dtype,
+            scale_init=self.kernel_init,
+            bias_init=zeros_(),
         )
 
         x = nn.ConvTranspose(
@@ -92,4 +95,3 @@ class Generator(nn.Module):
         )(x)
 
         return nn.sigmoid(x)
-

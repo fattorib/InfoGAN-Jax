@@ -82,7 +82,7 @@ def create_latents_manual_categorical(
 def create_latents_manual_cts(
     num_noise, num_cts, num_cat, rng_key, cts_idx, num_samples=100
 ):
-    """Create latent variable to feed into generator. Continuous code, c_{cts_idx-1}, is manually varied from -2 to 2. 
+    """Create latent variable to feed into generator. Continuous code, c_{cts_idx-1}, is manually varied from -2 to 2.
 
     * All other args are the same as create_latents_with_codes *
 

@@ -1,7 +1,7 @@
 import unittest
 import jax
 import jax.numpy as jnp
-import numpy as np 
+import numpy as np
 
 from models.generator import Generator
 from models.discriminator import Discriminator
@@ -12,6 +12,7 @@ from loss import binary_cross_entropy_loss, cross_entropy_loss, q_cts_loss
 
 import torch.nn as nn
 import torch
+
 
 class TestUtils(unittest.TestCase):
     def setUp(self) -> None:
@@ -176,36 +177,43 @@ class TestQ(unittest.TestCase):
 
 
 class TestLosses(unittest.TestCase):
-
     def setUp(self) -> None:
         self.batch_size = 128
         self.num_classes = 25
 
     def test_BCE_loss(self):
         scores = np.random.rand(self.batch_size)
-        labels = np.random.binomial(1, 0.2, size = self.batch_size)
+        labels = np.random.binomial(1, 0.2, size=self.batch_size)
 
         jnp_scores, jnp_labels = jnp.array(scores), jnp.array(labels)
 
         torch_scores, torch_labels = torch.Tensor(scores), torch.Tensor(labels)
-        
-        jnp_loss = jax.device_get(binary_cross_entropy_loss(logit = jnp_scores, label = jnp_labels)).item()
+
+        jnp_loss = jax.device_get(
+            binary_cross_entropy_loss(logit=jnp_scores, label=jnp_labels)
+        ).item()
 
         torch_loss = nn.BCEWithLogitsLoss()(torch_scores, torch_labels).item()
 
         np.testing.assert_allclose(jnp_loss, torch_loss, rtol=1e-5, atol=0)
-    
+
     def test_CE_loss(self):
         scores = np.random.rand(self.batch_size, self.num_classes)
-        labels = np.random.randint(low = 0, high = self.num_classes-1, size = self.batch_size)
+        labels = np.random.randint(
+            low=0, high=self.num_classes - 1, size=self.batch_size
+        )
 
         jnp_scores, jnp_labels = jnp.array(scores), jnp.array(labels)
 
-        jnp_labels_OH = jax.nn.one_hot(jnp_labels, num_classes = self.num_classes)
+        jnp_labels_OH = jax.nn.one_hot(jnp_labels, num_classes=self.num_classes)
 
-        torch_scores, torch_labels = torch.tensor(scores), torch.tensor(labels, dtype = torch.long)
+        torch_scores, torch_labels = torch.tensor(scores), torch.tensor(
+            labels, dtype=torch.long
+        )
 
-        jnp_loss = jax.device_get(cross_entropy_loss(q_logits = jnp_scores, q_codes = jnp_labels_OH)).item()
+        jnp_loss = jax.device_get(
+            cross_entropy_loss(q_logits=jnp_scores, q_codes=jnp_labels_OH)
+        ).item()
 
         torch_loss = nn.CrossEntropyLoss()(torch_scores, torch_labels).item()
 
@@ -213,8 +221,3 @@ class TestLosses(unittest.TestCase):
 
     def gaussian_nll(self):
         pass
-
-
-        
-        
-

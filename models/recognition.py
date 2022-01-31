@@ -9,6 +9,7 @@ import copy
 from functools import partial
 from matplotlib.pyplot import axes
 import numpy as np
+from utils.zero_init import zeros_
 
 ModuleDef = Any
 dtypedef = Any
@@ -17,19 +18,19 @@ dtypedef = Any
 class Q_head(nn.Module):
     """Basic Q network for MNIST
 
-    Args:
-        filter_size (int): Input number of filters.
+        Args:
+            filter_size (int): Input number of filters.
 
-        dtype (dtypedef): Model dtype. Defaults to float32
+            dtype (dtypedef): Model dtype. Defaults to float32
 
-        num_cts_codes (int): Number of continuous codes to use. Defaults to 2. 
+            num_cts_codes (int): Number of continuous codes to use. Defaults to 2.
 
-        num_cat (int): Number of categories for the single categorical variable. Defaults to 10. 
-): 
-    
-    References:
-        Chen et al, 2016: https://arxiv.org/abs/1606.03657
-    
+            num_cat (int): Number of categories for the single categorical variable. Defaults to 10.
+    ):
+
+        References:
+            Chen et al, 2016: https://arxiv.org/abs/1606.03657
+
     """
 
     filter_size: int
@@ -53,6 +54,8 @@ class Q_head(nn.Module):
             momentum=0.1,
             epsilon=1e-5,
             dtype=self.dtype,
+            scale_init=self.kernel_init,
+            bias_init=zeros_(),
         )
 
         x = nn.Conv(

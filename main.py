@@ -31,9 +31,9 @@ from utils.flax_utils import (
 from utils.create_latents_with_codes import create_latents_with_codes
 from utils.create_generator_grid import create_latent_grid
 
-from models.discriminator import Discriminator
-from models.generator import Generator
-from models.recognition import Q_head
+from models.mnist.discriminator import Discriminator
+from models.mnist.generator import Generator
+from models.mnist.recognition import Q_head
 
 
 # Loss

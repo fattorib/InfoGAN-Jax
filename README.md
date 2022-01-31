@@ -9,7 +9,7 @@ InfoGAN (cite) proposes an updated loss function for GANs to learn disentangled 
 1. Get mixed precision working 
     - Not sure how to update multiple states. Might be easy with argnums to dynamic_scale.value_and_grad
 2. Update docstrings
-3. Host public WandB link
+3. Host public WandB link (https://wandb.ai/bfattori/InfoGAN)
 4. Tests for losses
 
 ## Testing

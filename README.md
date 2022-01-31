@@ -35,11 +35,14 @@ python main.py
 ```
 Training for 100 epochs with full precision takes around 35 minutes on an RTX 2080. 
 
+## Results
+
+Full training results and visualizations are hosted on Weights and Biases [here](https://wandb.ai/bfattori/InfoGAN)
+
 ## To do
 
-
-2. Update docstrings
-3. Host public WandB link (https://wandb.ai/bfattori/InfoGAN)
+1. SVHN
+2. Explanation
 
 ## Testing
 ```

@@ -5,7 +5,7 @@ training:
   weight_decay: 5e-4
   print_freq: 100
   local_rank: 0
-  mixed_precision: True 
+  mixed_precision: False 
   discriminator_lr: 2e-4
   generator_lr: 1e-3
   lambda_cat: 1.0

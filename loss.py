@@ -31,7 +31,6 @@ def q_cts_loss(*, q_mu, q_var, y):
     """
     NLL for Gaussian. Used for the continuous code loss.
 
-    TODO: Still don't completely understand why we use this loss function
     """
 
     logli = -0.5 * jnp.log(((q_var * 2 * jnp.pi) + 1e-6)) - ((y - q_mu) ** 2) / (

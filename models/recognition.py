@@ -15,6 +15,25 @@ dtypedef = Any
 
 
 class Q_head(nn.Module):
+    """Basic Q network for MNIST
+
+    Args:
+        filter_size (int): 
+
+        num_channels (int):
+
+        dtype (dtypedef): 
+
+        num_cts_codes (int):
+
+        num_cat (int):
+
+        num_channels (int): 
+    
+    References:
+        Chen et al, 2016: https://arxiv.org/abs/1606.03657
+    
+    """
 
     filter_size: int
 

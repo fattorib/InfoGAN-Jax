@@ -14,6 +14,17 @@ dtypedef = Any
 
 
 class Generator(nn.Module):
+    """Basic generator network for MNIST
+
+    Args:
+        dtype (dtypedef): 
+
+        kernel_init (Callable): 
+    
+    References:
+        Chen et al, 2016: https://arxiv.org/abs/1606.03657
+    
+    """
 
     # dtype for fp16/32 training
     dtype: dtypedef = jnp.float32

@@ -80,7 +80,7 @@ def main(config: DictConfig):
     )
 
     model_dtype = (
-        jnp.float32 if cfg.training.mixed_precision == "False" else jnp.float16
+        jnp.float32 if cfg.training.mixed_precision == False else jnp.float16
     )
 
     # Setup WandB logging here
@@ -102,14 +102,15 @@ def main(config: DictConfig):
         + cfg.model.num_cat_codes * cfg.model.num_categories
     )
 
-    generator = Generator()
+    generator = Generator(dtype = model_dtype)
 
-    discriminator = Discriminator(filter_list=[64, 128, 1024])
+    discriminator = Discriminator(filter_list=[64, 128, 1024],dtype = model_dtype)
 
     q_network = Q_head(
         filter_size=128,
         num_cts_codes=cfg.model.num_cts_codes,
         num_cat=cfg.model.num_categories,
+        dtype = model_dtype
     )
 
     state_g = create_train_state(
@@ -292,7 +293,7 @@ def create_train_state(rng, init_func, var_size, learning_rate, weight_decay, mo
     """Creates initial `TrainState`."""
     params, batch_stats = init_func(rng, var_size, model)
 
-    # Mask for BN, bias params
+    # Mask for BN (affine), bias params
     mask = jax.tree_map(lambda x: x.ndim != 1, params)
     tx = optax.adamw(
         learning_rate=learning_rate, weight_decay=weight_decay, mask=mask, b1=0.5
@@ -387,7 +388,7 @@ def loss_generator(params_g, params_q, params_d, state_g, state_q, state_d, rng)
         logit=scores, label=jnp.ones(cfg.training.batch_size)
     )
 
-    # This might be a dumb way to do things - turning off batch stats so we don't update this twice
+    # This might be a silly way to do things - turning off batch stats so we don't update this twice
     features_out = state_d.apply_fn(
         {"params": params_d, "batch_stats": state_d.batch_stats},
         generated_batch,
@@ -434,11 +435,16 @@ def train_step(state_d, state_g, state_q, batch, rng):
 
     dynamic_scale = state_d.dynamic_scale
     if dynamic_scale:
-        # grad_fn = dynamic_scale.value_and_grad(loss_disc, has_aux=True)
+        grad_fn = dynamic_scale.value_and_grad(loss_disc, has_aux=True)
+
+        dynamic_scale, is_fin, (discriminator_loss, (state_d_new, state_g_new)), grads = grad_fn(
+            state_d.params, state_g.params, state_g, state_d, batch, rng
+        )
+
         # dynamic_scale, is_fin, aux, grads = grad_fn(
         #     state_d.params, state_g.params, state_g, state_d, batch, rng
         # )
-        raise NotImplementedError
+        # raise NotImplementedError
 
     else:
         grad_fn = jax.value_and_grad(loss_disc, has_aux=True)
@@ -452,25 +458,40 @@ def train_step(state_d, state_g, state_q, batch, rng):
     )
 
     if dynamic_scale:
-        raise NotImplementedError
-        # # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
-        # # params should be restored (= skip this step).
-        # state_d = state_d.replace(
-        #     opt_state=jax.tree_multimap(
-        #         functools.partial(jnp.where, is_fin),
-        #         state_d.opt_state,
-        #         state_d.opt_state,
-        #     ),
-        #     params=jax.tree_multimap(
-        #         functools.partial(jnp.where, is_fin), state_d.params, state_d.params
-        #     ),
-        # )
+        # raise NotImplementedError
+        # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
+        # params should be restored (= skip this step).
+        state_d = state_d.replace(
+            opt_state=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin),
+                state_d.opt_state,
+                state_d.opt_state,
+            ),
+            params=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin), state_d.params, state_d.params
+            ),
+        )
 
-    # 2. Compute
+    # 2. Compute generator loss
 
     dynamic_scale = state_q.dynamic_scale
+    
     if dynamic_scale:
-        raise NotImplementedError
+        # raise NotImplementedError
+        grad_fn = dynamic_scale.value_and_grad(loss_generator, argnums=(0, 1), has_aux=True)
+        dynamic_scale, is_fin, (generator_loss, (state_g_new, state_q_new, state_d_new)), grads = grad_fn(
+            state_g.params,
+            state_q.params,
+            state_d.params,
+            state_g,
+            state_q,
+            state_d,
+            rng,
+        )
+
+        grads_g, grads_q = grads
+        
+        # dynamic_scale_q, dynamic_scale_g = dynamic_scale
 
     else:
         grad_fn = jax.value_and_grad(loss_generator, argnums=(0, 1), has_aux=True)
@@ -495,7 +516,30 @@ def train_step(state_d, state_g, state_q, batch, rng):
     )
 
     if dynamic_scale:
-        raise NotImplementedError
+        # raise NotImplementedError
+        state_q = state_q.replace(
+            opt_state=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin),
+                state_q.opt_state,
+                state_q.opt_state,
+            ),
+            params=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin), state_q.params, state_q.params
+            ),
+        )
+
+        state_g = state_g.replace(
+            opt_state=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin),
+                state_g.opt_state,
+                state_g.opt_state,
+            ),
+            params=jax.tree_multimap(
+                functools.partial(jnp.where, is_fin), state_g.params, state_g.params
+            ),
+        )
+
+
 
     metrics = {
         "Discriminator Loss": discriminator_loss,

@@ -14,6 +14,21 @@ dtypedef = Any
 
 
 class Discriminator(nn.Module):
+    """Basic discriminator network for MNIST
+
+    Args:
+        filter_list (Sequence[int]): 
+
+        num_channels (int):
+
+        dtype (dtypedef): 
+
+        kernel_init (Callable): 
+    
+    References:
+        Chen et al, 2016: https://arxiv.org/abs/1606.03657
+    
+    """
 
     filter_list: Sequence[int]
 

@@ -13,6 +13,8 @@ def create_latents_with_codes(num_noise, num_cts, num_cat, rng_key, num_samples)
         rnk_key (*): jax prng key
         num_samples (int): number of latent samples to generate
 
+    Returns:
+        z (jnp.array): Latent variables of size (num_samples, num_noise + num_cts + num_cat)
     """
 
     # Noise
@@ -44,7 +46,10 @@ def create_latents_manual_categorical(
 ):
     """Create a latent variable to feed into the generator. Using fixed categorical variables.
 
-    - Same args as create_latents_with_codes
+    * Same args as create_latents_with_codes *
+
+    Returns:
+        z (jnp.array): Latent variables of size (num_samples, num_noise + num_cts + num_cat)
 
     """
 
@@ -79,7 +84,10 @@ def create_latents_manual_cts(
 ):
     """Create latent variable to feed into generator. Continuous code, c_{cts_idx-1}, is manually varied from -2 to 2. 
 
-    - All other args are the same as create_latents_with_codes
+    * All other args are the same as create_latents_with_codes *
+
+    Returns:
+        z (jnp.array): Latent variables of size (num_samples, num_noise + num_cts + num_cat)
 
     """
 

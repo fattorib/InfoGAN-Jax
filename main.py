@@ -207,20 +207,6 @@ def main(config: DictConfig):
                 image_generated, caption="Generator Samples (varying cts c_2)"
             )
 
-            image_generated = create_latent_grid(
-                100,
-                state_g,
-                state_g.params,
-                rng_key=rng,
-                cts_idx=2,
-                num_noise=cfg.model.num_noise,
-                num_cts=cfg.model.num_cts_codes,
-                num_cat=cfg.model.num_categories,
-            )
-            image5 = wandb.Image(
-                image_generated, caption="Generator Samples (varying cts c_3)"
-            )
-
             wandb.log(
                 {
                     "discriminator loss": epoch_metrics_np["Discriminator Loss"],
@@ -233,7 +219,6 @@ def main(config: DictConfig):
                     "generator samples (varying categorical code)": image2,
                     "generator samples (varying cts c_1)": image3,
                     "generator samples (varying cts c_2)": image4,
-                    "generator samples (varying cts c_3)": image5,
                 }
             )
 
@@ -241,7 +226,7 @@ def main(config: DictConfig):
                 f"{get_original_cwd()}/saved_checkpoints",
                 state_g,
                 step=epoch,
-                keep=3,
+                keep=2,
                 overwrite=True,
             )
 
@@ -261,7 +246,7 @@ def main(config: DictConfig):
         f"{get_original_cwd()}/saved_checkpoints",
         state_g,
         step=epoch + 1,
-        keep=3,
+        keep=2,
         overwrite=True,
     )
 

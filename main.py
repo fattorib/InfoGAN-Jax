@@ -1,6 +1,4 @@
 import numpy as np
-import flax.linen as nn
-import numpy
 import optax
 import functools
 
@@ -21,7 +19,7 @@ from torchvision.datasets import MNIST
 # Hydra
 import hydra
 from hydra.utils import get_original_cwd
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 # Utils
 from utils.flax_utils import (

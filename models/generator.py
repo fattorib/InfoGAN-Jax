@@ -1,14 +1,7 @@
-from ast import Str
-import jax
-from typing import Any, Callable, Sequence, Optional
-from jax import lax, random, numpy as jnp
-import flax
-from flax.core import freeze, unfreeze
+from typing import Any, Callable
+from jax import numpy as jnp
 from flax import linen as nn
-import copy
 from functools import partial
-import numpy as np
-from utils.zero_init import zeros_
 
 ModuleDef = Any
 dtypedef = Any
@@ -42,8 +35,6 @@ class Generator(nn.Module):
             momentum=0.1,
             epsilon=1e-5,
             dtype=self.dtype,
-            scale_init=self.kernel_init,
-            bias_init=zeros_(),
         )
 
         x = nn.ConvTranspose(

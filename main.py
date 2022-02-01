@@ -440,11 +440,6 @@ def train_step(state_d, state_g, state_q, batch, rng):
             grads,
         ) = grad_fn(state_d.params, state_g.params, state_g, state_d, batch, rng)
 
-        # dynamic_scale, is_fin, aux, grads = grad_fn(
-        #     state_d.params, state_g.params, state_g, state_d, batch, rng
-        # )
-        # raise NotImplementedError
-
     else:
         grad_fn = jax.value_and_grad(loss_disc, has_aux=True)
         (discriminator_loss, (state_d_new, state_g_new)), grads = grad_fn(
@@ -457,9 +452,6 @@ def train_step(state_d, state_g, state_q, batch, rng):
     )
 
     if dynamic_scale:
-        # raise NotImplementedError
-        # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
-        # params should be restored (= skip this step).
         state_d = state_d.replace(
             opt_state=jax.tree_multimap(
                 functools.partial(jnp.where, is_fin),
@@ -476,7 +468,6 @@ def train_step(state_d, state_g, state_q, batch, rng):
     dynamic_scale = state_q.dynamic_scale
 
     if dynamic_scale:
-        # raise NotImplementedError
         grad_fn = dynamic_scale.value_and_grad(
             loss_generator, argnums=(0, 1), has_aux=True
         )
@@ -496,8 +487,6 @@ def train_step(state_d, state_g, state_q, batch, rng):
         )
 
         grads_g, grads_q = grads
-
-        # dynamic_scale_q, dynamic_scale_g = dynamic_scale
 
     else:
         grad_fn = jax.value_and_grad(loss_generator, argnums=(0, 1), has_aux=True)

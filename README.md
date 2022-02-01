@@ -39,11 +39,6 @@ Training for 100 epochs with full precision takes around 35 minutes on an RTX 20
 
 Full training results and visualizations are hosted on Weights and Biases [here](https://wandb.ai/bfattori/InfoGAN)
 
-## To do
-
-1. SVHN
-2. Explanation
-
 ## Testing
 ```
 python -m pytest

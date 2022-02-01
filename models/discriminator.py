@@ -98,23 +98,3 @@ class Discriminator(nn.Module):
             return x.squeeze(axis=(2, 3))
         else:
             return x
-
-
-if __name__ == "__main__":
-
-    model = Discriminator(filter_list=[64, 128, 1024])
-
-    def initialized(key, image_size, model):
-        input_shape = (1, image_size, image_size, 1)
-
-        @jax.jit
-        def init(rng, shape):
-            return model.init(rng, shape, train=True)
-
-        variables = init(rng=key, shape=jnp.ones(input_shape, dtype=model.dtype))
-        return variables["params"], variables["batch_stats"]
-
-    rng = jax.random.PRNGKey(0)
-    rng, init_rng = jax.random.split(rng)
-
-    params, batch_stats = initialized(rng, 28, model)

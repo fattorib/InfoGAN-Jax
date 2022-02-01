@@ -1,11 +1,13 @@
-# InfoGAN in Jax
+# Jax InfoGAN
+Flax implementation of [InfoGAN: Interpretable Representation Learning by Information Maximizing Generative Adversarial Nets](https://arxiv.org/abs/1606.03657)
 
-## Description
+## (Very Short) Description
 
-InfoGAN (cite) proposes an updated loss function for GANs to learn disentangled (define) representations by adding an 'information regularization' term to the standard GAN loss function. The information regularization term approximates mutual information between a subset of the noise latents (called codes) and the output from the generator function. Including this term in the loss encourages these latent codes to connected to meaningful concepts such as scale, thickness, or rotation. 
+InfoGAN proposes an updated loss function for GANs to learn a disentangled representation by adding an "information regularization" term to the standard GAN loss function. 
 
-## Running Code
+The information regularization term approximates the mutual information between a subset of the noise variable, called codes and the output from the generator. The inclusion of this term in the loss encourages the codes to be connected to meaningful concepts of the generated samples such as scale, thickness, or rotation. 
 
+## Usage
 Configuration is handled with [Hydra](https://hydra.cc/). The default MNIST config contains the following:
 
 ```yaml
@@ -13,7 +15,7 @@ training:
   epochs: 101
   workers: 4
   batch_size: 128
-  weight_decay: 5e-4
+  weight_decay: 0
   mixed_precision: False 
   discriminator_lr: 2e-4
   generator_lr: 1e-3
@@ -37,14 +39,15 @@ Training for 100 epochs with full precision takes around 35 minutes on an RTX 20
 
 ## Results
 
-Full training results and visualizations are hosted on Weights and Biases [here](https://wandb.ai/bfattori/InfoGAN)
+Full training results and visualizations are hosted on Weights and Biases [here](https://wandb.ai/bfattori/InfoGAN).
 
-## Testing
+## Tests
+Basic tests for models, loss functions and generation code.
 ```
 python -m pytest
 ```
-
+   
 ## References
-
+- Xi Chen, Yan Duan, Rein Houthooft, John Schulman, Ilya Sutskever, Pieter Abbeel. InfoGAN: Interpretable Representation Learning by Information Maximizing Generative Adversarial Nets. [arxiv](https://arxiv.org/abs/1606.03657)
 - https://github.com/Natsu6767/InfoGAN-PyTorch is a very helpful repo.
 - https://github.com/bilal2vec/jax-dcgan is a good reference for working with GANs in Jax. 

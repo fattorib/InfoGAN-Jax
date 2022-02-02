@@ -48,5 +48,7 @@ iface = gr.Interface(fn=interface,
     inputs=[gr.inputs.Dropdown(choices = [i for i in range(0,10)], type="value", default=None, label=None), gr.inputs.Slider(-2, 2), gr.inputs.Slider(-2, 2)],
     outputs= ["image"],
     live=True,
+    title="Play with InfoGAN",
+    description="Interactive InfoGAN model trained on MNIST. Code 1 controls the thickness of the generated samples while Code 2 controls the rotation.",
     )
 iface.launch()

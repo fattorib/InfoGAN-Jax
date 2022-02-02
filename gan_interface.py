@@ -3,7 +3,6 @@ import numpy as np
 import flax 
 import jax 
 from typing import Any
-from utils.create_generator_grid import create_latent_grid
 from models.generator import Generator
 from flax.training.checkpoints import restore_checkpoint
 import matplotlib.pyplot as plt
@@ -43,7 +42,6 @@ def create_latent_grid(
     ):
 
     num_noise=62
-    num_cts=2
     num_cat=10
     # create irreducible noise
     z = jax.random.normal(rng_key, shape=(num_images, num_noise))
@@ -131,16 +129,3 @@ def create_latent_grid(
 
     return image_from_plot
 
-
-# image = create_latent_grid(
-#     num_images = 16,
-#     state = state,
-#     params = state.params,
-#     rng_key = jax.random.PRNGKey(0),
-#     image_dims=(4, 4),
-#     cat_idx = 0,
-#     c1_value = None,
-#     c2_value = None,
-# )
-
-# plt.show()

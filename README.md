@@ -45,7 +45,7 @@ Full training results and visualizations are hosted on Weights and Biases [here]
 The trained model can also be run in a small [Gradio](https://gradio.app/) app. 
 ![image](images/app.png "App Image")
 
-To run the model locally:
+To run the app locally:
 ```
 python app.py
 ```

@@ -41,6 +41,15 @@ Training for 100 epochs with full precision takes around 35 minutes on an RTX 20
 
 Full training results and visualizations are hosted on Weights and Biases [here](https://wandb.ai/bfattori/InfoGAN).
 
+## Gradio
+The trained model can also be run in a small [Gradio](https://gradio.app/) app. 
+![image](images/app.png "App Image")
+
+To run the model locally:
+```
+python app.py
+```
+
 ## Tests
 Basic tests for models, loss functions and generation code.
 ```

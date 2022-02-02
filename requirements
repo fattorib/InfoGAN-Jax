@@ -3,3 +3,4 @@ jaxlib
 flax
 hydra-core
 wandb
+gradio
